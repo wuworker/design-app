@@ -1,0 +1,4 @@
+#android projects
+/build
+*.iml
+*.pro

@@ -1,0 +1,18 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/skyblue</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <!-- ToolBarStyle  -->
+    <style name="ToolBarStyle" parent="ThemeOverlay.AppCompat.ActionBar">
+        <item name="android:textColorPrimary">@color/white</item>
+    </style>
+    <style name="ToolBarMenuStyle" parent="ThemeOverlay.AppCompat.Light">
+        <item name="actionMenuTextColor">@color/black</item>
+    </style>
+
+</resources>

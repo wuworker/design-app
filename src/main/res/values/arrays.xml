@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="device_user_list_test">
+        <item>哈哈</item>
+        <item>拉拉</item>
+        <item>gg</item>
+    </string-array>
+
+</resources>
