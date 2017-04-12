@@ -1,4 +1,4 @@
-package com.wuxl.design;
+package com.wuxl.design.activity;
 
 import android.content.Intent;
 import android.graphics.Color;
@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
-import com.wuxl.design.login.LoginActivity;
+import com.wuxl.design.R;
 
 import java.util.Timer;
 import java.util.TimerTask;

@@ -1,4 +1,4 @@
-package com.wuxl.design.device;
+package com.wuxl.design.activity;
 
 import android.graphics.Color;
 import android.os.Bundle;

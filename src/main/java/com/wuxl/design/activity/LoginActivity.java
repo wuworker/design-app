@@ -1,4 +1,4 @@
-package com.wuxl.design.login;
+package com.wuxl.design.activity;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -8,7 +8,6 @@ import android.util.Log;
 import android.view.View;
 
 import com.wuxl.design.R;
-import com.wuxl.design.device.DeviceActivity;
 
 import static com.wuxl.design.utils.AppUtils.*;
 
