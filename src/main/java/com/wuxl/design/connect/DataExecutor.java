@@ -2,7 +2,10 @@ package com.wuxl.design.connect;
 
 import android.util.Log;
 
+import com.wuxl.design.connect.impl.DataExecutorImpl;
 import com.wuxl.design.connect.protocol.DataPackage;
+
+import java.util.Arrays;
 
 /**
  * 数据接收解析和发送封装
@@ -12,10 +15,19 @@ public abstract class DataExecutor {
 
     private static final String TAG = "DataExecutor";
 
-    protected TCPConnector connector;
+    private TCPConnector connector;
 
     public DataExecutor(TCPConnector connector){
         this.connector = connector;
+    }
+
+    /**
+     * 拿到默认的数据解析器
+     * @param connector 连接
+     * @return executor
+     */
+    public static DataExecutor getDefaultDataExecutor(TCPConnector connector){
+        return new DataExecutorImpl(connector);
     }
 
     /**
@@ -39,6 +51,7 @@ public abstract class DataExecutor {
      */
     public void sendData(DataPackage dataPackage){
         byte[] data = fromDataPackage(dataPackage);
+        Log.d(TAG,"拆包的数据为:"+ Arrays.toString(data));
         if(connector!=null){
             connector.sendData(data);
         } else {
@@ -54,6 +67,5 @@ public abstract class DataExecutor {
     public DataPackage readData(byte[] bytes){
         return toDataPackage(bytes);
     }
-
 
 }

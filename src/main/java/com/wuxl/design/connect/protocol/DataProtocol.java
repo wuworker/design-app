@@ -13,10 +13,12 @@ public class DataProtocol {
 
     public static final int TARGET_LENGTH = 6;
 
-    public static final int DATA_LENGTH = 4;
+    public static final int CMD_LENGTH = 1;
 
-    public static final int RECEIVE_LENGTH = ORIGIN_LENGTH + TARGET_LENGTH + DATA_LENGTH;
+    public static final int DATA_LENGTH = 3;
 
-    public static final int SEND_LENGTH = ORIGIN_LENGTH + DATA_LENGTH;
+    public static final int SEND_LENGTH = ORIGIN_LENGTH + TARGET_LENGTH + CMD_LENGTH + DATA_LENGTH;
+
+    public static final int RECEIVE_LENGTH = ORIGIN_LENGTH + CMD_LENGTH + DATA_LENGTH;
 
 }

@@ -11,7 +11,7 @@ public interface TCPConnector {
     /**
      * 连接
      */
-    void connect(int port) throws IOException;
+    void connect(String ip,int port) throws IOException;
 
     /**
      * 关闭
