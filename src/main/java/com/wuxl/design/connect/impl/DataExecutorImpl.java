@@ -9,11 +9,12 @@ import com.wuxl.design.connect.protocol.DataPackage;
 import java.util.Arrays;
 
 import static com.wuxl.design.connect.protocol.DataProtocol.CMD_LENGTH;
-import static com.wuxl.design.connect.protocol.DataProtocol.DATA_LENGTH;
 import static com.wuxl.design.connect.protocol.DataProtocol.ORIGIN_LENGTH;
 import static com.wuxl.design.connect.protocol.DataProtocol.RECEIVE_LENGTH;
 import static com.wuxl.design.connect.protocol.DataProtocol.SEND_LENGTH;
 import static com.wuxl.design.connect.protocol.DataProtocol.TARGET_LENGTH;
+import static com.wuxl.design.utils.DataUtils.toByte;
+import static com.wuxl.design.utils.DataUtils.toInteger;
 
 /**
  * 数据解析封装的实现
@@ -23,11 +24,8 @@ public class DataExecutorImpl extends DataExecutor {
 
     private static final String TAG = "DataExecutorImpl";
 
-    private DataPackage dataPackage;
-
     public DataExecutorImpl(TCPConnector tcpConnector) {
         super(tcpConnector);
-        dataPackage = new DataPackage();
     }
 
     /**
@@ -43,9 +41,8 @@ public class DataExecutorImpl extends DataExecutor {
             return null;
         }
         dataPackage.setOrigin(Arrays.copyOf(bytes, ORIGIN_LENGTH));
-        dataPackage.setCmd(Arrays.copyOfRange(bytes,ORIGIN_LENGTH,ORIGIN_LENGTH+CMD_LENGTH));
-        dataPackage.setData(Arrays.copyOfRange(bytes,ORIGIN_LENGTH+CMD_LENGTH,
-                ORIGIN_LENGTH+CMD_LENGTH+DATA_LENGTH));
+        dataPackage.setCmd(bytes[ORIGIN_LENGTH]);
+        dataPackage.setData(toInteger(bytes, ORIGIN_LENGTH + CMD_LENGTH));
 
         return dataPackage;
     }
@@ -59,10 +56,10 @@ public class DataExecutorImpl extends DataExecutor {
     @Override
     public byte[] fromDataPackage(DataPackage dataPackage) {
         byte[] bytes = new byte[SEND_LENGTH];
-        System.arraycopy(dataPackage.getOrigin(),0,bytes,0,ORIGIN_LENGTH);
-        System.arraycopy(dataPackage.getTarget(),0,bytes,ORIGIN_LENGTH, TARGET_LENGTH);
-        System.arraycopy(dataPackage.getCmd(),0,bytes,ORIGIN_LENGTH+TARGET_LENGTH,CMD_LENGTH);
-        System.arraycopy(dataPackage.getData(),0,bytes,ORIGIN_LENGTH+TARGET_LENGTH+CMD_LENGTH,DATA_LENGTH);
+        System.arraycopy(dataPackage.getOrigin(), 0, bytes, 0, ORIGIN_LENGTH);
+        System.arraycopy(dataPackage.getTarget(), 0, bytes, ORIGIN_LENGTH, TARGET_LENGTH);
+        bytes[ORIGIN_LENGTH + TARGET_LENGTH] = dataPackage.getCmd();
+        toByte(bytes, dataPackage.getData(), ORIGIN_LENGTH + TARGET_LENGTH + CMD_LENGTH);
         return bytes;
     }
 }

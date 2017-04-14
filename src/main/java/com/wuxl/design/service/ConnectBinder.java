@@ -5,21 +5,16 @@ import android.os.Binder;
 import com.wuxl.design.connect.ConnectorListener;
 import com.wuxl.design.connect.DataExecutor;
 import com.wuxl.design.connect.TCPConnector;
-import com.wuxl.design.connect.protocol.DataPackage;
-
-import java.io.IOException;
 
 /**
  * Created by wuxingle on 2017/4/13 0013.
- *
+ * binder
  */
 public class ConnectBinder extends Binder{
 
     private TCPConnector tcpConnector;
 
     private DataExecutor dataExecutor;
-
-    private ConnectorListener connectorListener;
 
     public ConnectBinder(TCPConnector tcpConnector){
         this.tcpConnector = tcpConnector;
@@ -30,16 +25,12 @@ public class ConnectBinder extends Binder{
         tcpConnector.setListener(listener);
     }
 
-    public DataPackage parse(byte[] bytes){
-        return dataExecutor.toDataPackage(bytes);
-    }
 
-    public void send(DataPackage dataPackage){
-        dataExecutor.sendData(dataPackage);
-    }
-
-    public void connect(String ip,int port)throws IOException{
+    public void connect(String ip,int port){
         tcpConnector.connect(ip,port);
     }
 
+    public DataExecutor getDataExecutor() {
+        return dataExecutor;
+    }
 }

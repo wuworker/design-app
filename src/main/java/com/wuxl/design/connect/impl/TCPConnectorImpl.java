@@ -56,33 +56,15 @@ public class TCPConnectorImpl implements TCPConnector{
             @Override
             public void run() {
                 try {
-                    selector = Selector.open();
-                    socketChannel = SocketChannel.open();
-                    socketChannel.configureBlocking(false);
-                    socketChannel.connect(new InetSocketAddress(ip,port));
-                    socketChannel.register(selector, SelectionKey.OP_CONNECT);
-                    Log.d(TAG,"开始连接...");
-                    running = true;
-                    start();
+                    start(ip,port);
                 }catch (IOException e){
                     Log.e(TAG,"连接失败",e);
+                }finally {
+                    selector = null;
+                    Log.i(TAG,"连接已关闭");
                 }
             }
         });
-    }
-
-    /**
-     * 开始运行
-     */
-    private void start(){
-        try{
-            listen();
-        }catch (IOException e){
-            Log.e(TAG,"start方法异常,连接异常终止",e);
-        }finally {
-            Log.i(TAG,"连接线程已结束");
-            selector = null;
-        }
     }
 
     /**
@@ -95,7 +77,7 @@ public class TCPConnectorImpl implements TCPConnector{
             return;
         }
         Log.i(TAG,"发送就绪"+Arrays.toString(data));
-        //
+        //put不行
         writeBuffer = ByteBuffer.wrap(data);
         canSend = true;
         if(listener!=null){
@@ -126,15 +108,33 @@ public class TCPConnectorImpl implements TCPConnector{
     /**
      * 设置监听
      */
+    @Override
     public void setListener(ConnectorListener listener){
         this.listener = listener;
     }
 
+
     /**
-     * 取消监听
+     * 开始运行
      */
-    public void cancelListener(){
-        this.listener = null;
+    private void start(String ip,int port)throws IOException{
+        try{
+            selector = Selector.open();
+            socketChannel = SocketChannel.open();
+            socketChannel.configureBlocking(false);
+            socketChannel.connect(new InetSocketAddress(ip,port));
+            socketChannel.register(selector, SelectionKey.OP_CONNECT);
+            Log.d(TAG,"开始连接...");
+            running = true;
+            listen();
+        }catch (IOException e){
+            running = false;
+            Log.e(TAG,"start方法异常,连接异常终止",e);
+        }finally {
+            if(selector!=null)
+                selector.close();
+            Log.i(TAG,"连接资源已释放");
+        }
     }
 
     /**
@@ -142,7 +142,7 @@ public class TCPConnectorImpl implements TCPConnector{
      * @throws IOException
      */
     private void listen()throws IOException{
-        int count = 0;
+        int count;
         try {
             while(running){
                 count = selector.select();
@@ -160,10 +160,8 @@ public class TCPConnectorImpl implements TCPConnector{
             Log.e(TAG,"select调度异常,准备停止连接");
             notifyInterested(e.getMessage());
         }finally {
-            socketChannel.close();
-            selector.close();
-            Log.i(TAG,"连接已关闭");
             running = false;
+            socketChannel.close();
         }
     }
 
@@ -201,9 +199,9 @@ public class TCPConnectorImpl implements TCPConnector{
             }
         }catch (IOException e){
             Log.e(TAG,"连接事件异常",e);
+            running = false;
             key.cancel();
             socketChannel.close();
-            running = false;
         }finally {
             if(listener!=null){
                 listener.connectResult(success);
@@ -228,19 +226,18 @@ public class TCPConnectorImpl implements TCPConnector{
                 readBuffer.clear();
             } else {
                 Log.i(TAG,"读取到-1连接断开");
-                key.cancel();
-                socketChannel.close();
                 notifyInterested("与服务器断开连接");
                 running = false;
+                key.cancel();
+                socketChannel.close();
             }
         }catch (IOException e){
             Log.e(TAG,"读取事件异常",e);
-            key.cancel();
-            socketChannel.close();
             notifyInterested(e.getMessage());
             running =false;
+            key.cancel();
+            socketChannel.close();
         }
-
     }
 
     /**
@@ -257,10 +254,10 @@ public class TCPConnectorImpl implements TCPConnector{
             }
         }catch (IOException e){
             Log.e(TAG,"发送数据异常");
-            key.cancel();
-            socketChannel.close();
             notifyInterested(e.getMessage());
             running = false;
+            key.cancel();
+            socketChannel.close();
         }
     }
 
