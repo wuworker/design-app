@@ -21,4 +21,13 @@ public class DataProtocol {
 
     public static final int RECEIVE_LENGTH = ORIGIN_LENGTH + CMD_LENGTH + DATA_LENGTH;
 
+    //开启
+    public static final byte CMD_ON = 0x12;
+
+    //关闭
+    public static final byte CMD_OFF = 0x49;
+
+    //调整
+    public static final byte CMD_PWM = (byte)0xa1;
+
 }

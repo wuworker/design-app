@@ -29,16 +29,15 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
-    private static final byte[] TARGET = new byte[6];
-    private static final byte[] ORIGIN = new byte[6];
-    private static final byte[] EMPTY = new byte[6];
-
-    static{
-        Arrays.fill(TARGET,(byte)0x56);
-        Arrays.fill(ORIGIN,(byte)0x23);
-    }
-
     private DataExecutor dataExecutor;
+
+    private String ip;
+
+    private int port;
+
+    private byte[] origin;
+
+    private byte[] empty = new byte[6];
 
     private ServiceConnection connection = new ServiceConnection() {
         private ConnectBinder binder;
@@ -47,14 +46,14 @@ public class MainActivity extends AppCompatActivity {
             binder = (ConnectBinder)service;
             binder.setConnectorListener(listener);
             dataExecutor = binder.getDataExecutor();
-            dataExecutor.setOrigin(ORIGIN);
-            dataExecutor.setTarget(EMPTY);
-            binder.connect("192.168.1.109",9999);
+            dataExecutor.setOrigin(origin);
+            dataExecutor.setTarget(empty);
+            binder.connect(ip,port);
         }
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-
+            Log.w(TAG,"service bind fail");
         }
     };
 
@@ -62,7 +61,12 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void connectResult(boolean success) {
             Log.i(TAG,"连接:"+success);
-            dataExecutor.sendData((byte)12,1000);
+            if(success){
+                //自我设置
+                dataExecutor.sendData((byte)12,1000);
+                goNext();
+            }
+            goNext();
         }
 
         @Override
@@ -71,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG,"收到数据origin:"+dataPackage.getHexOrigin());
             Log.d(TAG,"收到数据cmd:"+dataPackage.getCmd());
             Log.d(TAG,"收到数据data:"+dataPackage.getData());
-            dataExecutor.sendData(TARGET,(byte)100,1310);
         }
 
         @Override
@@ -91,16 +94,38 @@ public class MainActivity extends AppCompatActivity {
         setStatusBarColor(this,Color.rgb(0x87,0xce,0xeb));
         setContentView(R.layout.activity_main);
 
+        init();
+
         Intent intent = new Intent(this, TCPConnectService.class);
-        //startService(intent);
+        startService(intent);
         bindService(intent,connection, Service.BIND_AUTO_CREATE);
     }
 
+    /**
+     * 初始化
+     */
+    private void init(){
+        ip = getResources().getString(R.string.server_ip);
+        port = Integer.parseInt(getResources().getString(R.string.server_port));
+        origin = new byte[6];
+        Arrays.fill(origin,(byte)0x23);
+    }
+
+    /**
+     * go next activity
+     */
+    private void goNext(){
+        Intent intent = new Intent(this,LoginActivity.class);
+        startActivity(intent);
+        finish();
+        Log.i(TAG,"main go next");
+    }
 
     @Override
     public void onDestroy(){
         super.onDestroy();
         unbindService(connection);
+        Log.i(TAG,"main activity destroy");
     }
 
 

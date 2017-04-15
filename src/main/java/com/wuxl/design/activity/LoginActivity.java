@@ -8,6 +8,7 @@ import android.util.Log;
 import android.view.View;
 
 import com.wuxl.design.R;
+import com.wuxl.design.service.TCPConnectService;
 
 import static com.wuxl.design.utils.AppUtils.*;
 
@@ -22,6 +23,8 @@ public class LoginActivity extends AppCompatActivity{
 
     private Toolbar toolbar;
 
+    private boolean exit = true;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,11 +37,11 @@ public class LoginActivity extends AppCompatActivity{
 
 
     public void login(View v){
-        Intent intent = new Intent(LoginActivity.this, DeviceActivity.class);
+        exit = false;
+        Intent intent = new Intent(this, DeviceActivity.class);
         startActivity(intent);
         Log.i(TAG,"进入设备页面");
         finish();
-
     }
 
     /**
@@ -65,6 +68,17 @@ public class LoginActivity extends AppCompatActivity{
         //toolbar.setOnMenuItemClickListener(this);
     }
 
+
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        if(exit){
+            Intent intent = new Intent(this,TCPConnectService.class);
+            stopService(intent);
+            Log.i(TAG,"login stop service");
+        }
+        Log.i(TAG,"login activity destroy");
+    }
 
 
 }
