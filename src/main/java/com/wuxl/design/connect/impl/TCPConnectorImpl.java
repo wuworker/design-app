@@ -13,8 +13,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * tcp连接的实现
@@ -23,8 +21,6 @@ import java.util.concurrent.Executors;
 public class TCPConnectorImpl implements TCPConnector{
 
     private static final String TAG = "TCPConnectorImpl";
-
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     private Selector selector;
 
@@ -47,24 +43,19 @@ public class TCPConnectorImpl implements TCPConnector{
      * @param port 端口号
      */
     @Override
-    public void connect(final String ip,final int port){
+    public void connect(String ip,int port){
         if(running || selector!=null){
             Log.i(TAG,"已在连接...");
             return;
         }
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    start(ip,port);
-                }catch (IOException e){
-                    Log.e(TAG,"连接失败",e);
-                }finally {
-                    selector = null;
-                    Log.i(TAG,"连接已关闭");
-                }
-            }
-        });
+        try {
+            start(ip,port);
+        }catch (IOException e){
+            Log.e(TAG,"连接失败",e);
+        }finally {
+            selector = null;
+            Log.i(TAG, "连接已关闭");
+        }
     }
 
     /**
@@ -100,8 +91,6 @@ public class TCPConnectorImpl implements TCPConnector{
         }catch (IOException e){
             Log.e(TAG,"close异常",e);
         }
-
-        executorService.shutdown();
         Log.i(TAG,"连接正在断开");
     }
 
@@ -113,6 +102,13 @@ public class TCPConnectorImpl implements TCPConnector{
         this.listener = listener;
     }
 
+    /**
+     * @return 是否连接
+     */
+    @Override
+    public boolean isConnect() {
+        return running || selector!=null;
+    }
 
     /**
      * 开始运行
@@ -128,9 +124,10 @@ public class TCPConnectorImpl implements TCPConnector{
             running = true;
             listen();
         }catch (IOException e){
-            running = false;
+            notifyInterested(e.getMessage());
             Log.e(TAG,"start方法异常,连接异常终止",e);
         }finally {
+            running = false;
             if(selector!=null)
                 selector.close();
             Log.i(TAG,"连接资源已释放");

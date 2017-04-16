@@ -2,7 +2,7 @@
     <string name="app_name">design-app</string>
     <string name="title_activity_login">Sign in</string>
 
-    <string name="server_ip">192.168.1.112</string>
+    <string name="server_ip">192.168.1.110</string>
     <string name="server_port">9999</string>
 
     <string name="bar_open">打开</string>

@@ -61,6 +61,10 @@ public abstract class DataExecutor {
         sendData(cmd,data);
     }
 
+    public void sendData(byte[] target,int cmd,int data){
+        sendData(target,(byte)cmd,data);
+    }
+
     /**
      * 默认往上次地址发送
      * @param cmd cmd
@@ -70,6 +74,10 @@ public abstract class DataExecutor {
         dataPackage.setCmd(cmd);
         dataPackage.setData(data);
         sendData(dataPackage);
+    }
+
+    public void sendData(int cmd,int data){
+        sendData((byte)cmd,data);
     }
 
     /**

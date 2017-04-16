@@ -23,7 +23,10 @@ public class DataUtilsTest {
     }
 
     @Test
-    public void testToByte() throws Exception {
-
+    public void testToByte(){
+        byte[] bytes1 = DataUtils.toByte("ab12345A");
+        System.out.println(Arrays.toString(bytes1));
+        String hex = DataUtils.toHex(bytes1);
+        System.out.println(hex);
     }
 }

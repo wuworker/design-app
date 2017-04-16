@@ -39,7 +39,7 @@ public class DataUtils {
             return 0;
         }
         int data = 0;
-        for (int i = 0; start+i < bytes.length && i < 4; i++) {
+        for (int i = 0; start + i < bytes.length && i < 4; i++) {
             data |= ((bytes[start + i] & 0xff) << (i * 8));
         }
         return data;
@@ -66,5 +66,37 @@ public class DataUtils {
 
     }
 
+    /**
+     * 16进制转byte
+     */
+    public static byte[] toByte(String hex){
+        if (hex == null) {
+            return new byte[0];
+        }
+        byte[] bytes = new byte[(hex.length() + 1) / 2];
+        String sHex = hex.toLowerCase();
+        try {
+            for (int i = 0; i < hex.length(); i += 2) {
+                int h = indexOfHex(sHex.charAt(i));
+                int l = (i + 1) < hex.length() ? indexOfHex(sHex.charAt(i + 1)) : 0;
+                bytes[(i + 1) / 2] = (byte) ((h & 0x0f) << 4 | (l & 0x0f));
+            }
+        }catch (NumberFormatException e){
+            e.printStackTrace();
+            return new byte[0];
+        }
+        return bytes;
+    }
+
+    /**
+     * 单个16进制转byte
+     */
+    public static int indexOfHex(char c)throws NumberFormatException{
+        int position = "0123456789abcdef".indexOf(c);
+        if(position==-1){
+            throw new NumberFormatException("输入的不是16进制数");
+        }
+        return position;
+    }
 
 }
