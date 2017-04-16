@@ -11,7 +11,11 @@ public interface WifiListener {
      */
     void canConnect();
 
-
+    /**
+     * 在线通知
+     * @param hexId 设备id
+     */
+    void isOnline(String hexId);
 
 
 

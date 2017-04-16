@@ -1,17 +1,27 @@
 package com.wuxl.design.model;
 
+import java.io.Serializable;
+
 import static com.wuxl.design.utils.DataUtils.toHex;
 /**
  * wifi设备
  * Created by wuxingle on 2017/4/11 0011.
  */
-public class WifiDevice {
+public class WifiDevice implements Serializable{
+
+    public static final int ONLINE = 1;
+
+    public static final int BUSY = 2;
+
+    public static final int UNONLINE = 3;
 
     private byte[] id;
 
-    private boolean online;
-
     private String name;
+
+    private int lightLevel = 100;
+
+    private transient int status;
 
     public WifiDevice() {
     }
@@ -37,14 +47,6 @@ public class WifiDevice {
         return toHex(id);
     }
 
-    public boolean isOnline() {
-        return online;
-    }
-
-    public void setOnline(boolean online) {
-        this.online = online;
-    }
-
     public String getName() {
         return name;
     }
@@ -52,6 +54,23 @@ public class WifiDevice {
     public void setName(String name) {
         this.name = name;
     }
+
+    public int getLightLevel() {
+        return lightLevel;
+    }
+
+    public void setLightLevel(int lightLevel) {
+        this.lightLevel = lightLevel;
+    }
+
+    public int getStatus() {
+        return status;
+    }
+
+    public void setStatus(int status) {
+        this.status = status;
+    }
+
 
     @Override
     public String toString() {

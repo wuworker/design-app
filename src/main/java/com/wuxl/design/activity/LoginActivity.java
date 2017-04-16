@@ -8,7 +8,7 @@ import android.util.Log;
 import android.view.View;
 
 import com.wuxl.design.R;
-import com.wuxl.design.service.TCPConnectService;
+import com.wuxl.design.connect.service.TCPConnectService;
 
 import static com.wuxl.design.utils.AppUtils.*;
 

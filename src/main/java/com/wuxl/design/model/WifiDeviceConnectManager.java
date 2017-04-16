@@ -11,12 +11,15 @@ import android.util.Log;
 import com.wuxl.design.connect.ConnectorListener;
 import com.wuxl.design.connect.DataExecutor;
 import com.wuxl.design.connect.protocol.DataPackage;
-import com.wuxl.design.service.TCPConnectService;
+import com.wuxl.design.connect.service.TCPConnectService;
+
+import java.util.Arrays;
 
 import static com.wuxl.design.connect.protocol.DataProtocol.CMD_OFF;
 import static com.wuxl.design.connect.protocol.DataProtocol.CMD_ON;
+import static com.wuxl.design.connect.protocol.DataProtocol.CMD_ONLINE;
 import static com.wuxl.design.connect.protocol.DataProtocol.CMD_PWM;
-
+import static com.wuxl.design.connect.protocol.DataProtocol.OK_ONLINE;
 /**
  * Created by wuxingle on 2017/4/16 0016.
  * wifi设备的连接管理
@@ -70,6 +73,16 @@ public class WifiDeviceConnectManager {
         public void arrivedMessage(byte[] bytes) {
             Log.i(TAG,"收到数据");
             DataPackage dataPackage = dataExecutor.toDataPackage(bytes);
+            if(dataPackage == null){
+                Log.i(TAG,"解析失败,忽略这次数据");
+                return;
+            }
+            if(OK_ONLINE == dataPackage.getCmd()){
+                if(wifiListener!=null){
+                    wifiListener.isOnline(dataPackage.getHexOrigin());
+                }
+                Log.i(TAG,"设备"+dataPackage.getHexOrigin()+"存在");
+            }
             Log.d(TAG,"收到数据origin:"+dataPackage.getHexOrigin());
             Log.d(TAG,"收到数据cmd:"+dataPackage.getCmd());
             Log.d(TAG,"收到数据data:"+dataPackage.getData());
@@ -174,6 +187,19 @@ public class WifiDeviceConnectManager {
     }
 
     /**
+     * 设置设备是否存在
+     * @param wifiDevice 设备
+     */
+    public void isOnline(WifiDevice wifiDevice){
+        if(isReady()){
+            Log.i(TAG,"发送数据,判断设备是否在线,"+ Arrays.toString(wifiDevice.getId()));
+            dataExecutor.sendData(wifiDevice.getId(),CMD_ONLINE,0);
+        }else {
+            Log.w(TAG,"service未启动");
+        }
+    }
+
+    /**
      * 最后的资源清理
      */
     public void close(){
@@ -182,6 +208,9 @@ public class WifiDeviceConnectManager {
             context.stopService(new Intent(context,TCPConnectService.class));
             context = null;
         }
+        service = null;
+        dataExecutor = null;
+        connectManager = null;
     }
 
     /**

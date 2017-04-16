@@ -1,4 +1,4 @@
-package com.wuxl.design.service;
+package com.wuxl.design.connect.service;
 
 import android.app.Service;
 import android.content.Intent;
@@ -24,6 +24,7 @@ public class TCPConnectService extends Service{
 
     private static final String TAG = "TCPConnectService";
 
+    //一次建立一条连接
     private ExecutorService threadPool = Executors.newSingleThreadExecutor();
 
     private TCPConnector connector;
@@ -79,8 +80,10 @@ public class TCPConnectService extends Service{
     public void onDestroy() {
         connector.close();
         threadPool.shutdown();
-        super.onDestroy();
         Log.i(TAG,"service已关闭");
+        super.onDestroy();
+        //不用下面这个，记得释放static变量
+        //android.os.Process.killProcess(android.os.Process.myPid());
     }
 
     /**

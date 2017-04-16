@@ -29,7 +29,7 @@
         </activity>
         <activity android:name=".activity.LoginActivity"/>
         <activity android:name=".activity.DeviceActivity"/>
-        <service android:name=".service.TCPConnectService"/>
+        <service android:name=".connect.service.TCPConnectService"/>
 
     </application>
 

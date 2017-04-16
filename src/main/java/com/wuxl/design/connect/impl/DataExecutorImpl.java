@@ -56,8 +56,13 @@ public class DataExecutorImpl extends DataExecutor {
     @Override
     public byte[] fromDataPackage(DataPackage dataPackage) {
         byte[] bytes = new byte[SEND_LENGTH];
-        System.arraycopy(dataPackage.getOrigin(), 0, bytes, 0, ORIGIN_LENGTH);
-        System.arraycopy(dataPackage.getTarget(), 0, bytes, ORIGIN_LENGTH, TARGET_LENGTH);
+        if(dataPackage.getOrigin()!=null){
+            System.arraycopy(dataPackage.getOrigin(), 0, bytes, 0, ORIGIN_LENGTH);
+        }
+        if(dataPackage.getTarget()!=null){
+            System.arraycopy(dataPackage.getTarget(), 0, bytes, ORIGIN_LENGTH, TARGET_LENGTH);
+        }
+
         bytes[ORIGIN_LENGTH + TARGET_LENGTH] = dataPackage.getCmd();
         toByte(bytes, dataPackage.getData(), ORIGIN_LENGTH + TARGET_LENGTH + CMD_LENGTH);
         return bytes;

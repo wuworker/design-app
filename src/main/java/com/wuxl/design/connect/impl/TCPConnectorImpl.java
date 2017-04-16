@@ -11,8 +11,10 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Queue;
 
 /**
  * tcp连接的实现
@@ -28,13 +30,12 @@ public class TCPConnectorImpl implements TCPConnector{
 
     private ByteBuffer readBuffer = ByteBuffer.allocate(32);
 
-    private ByteBuffer writeBuffer = ByteBuffer.allocate(32);
+    //最多缓存100条发送消息
+    private Queue<ByteBuffer> messageQueue = new ArrayDeque<>(100);
 
     private boolean running;
 
     private ConnectorListener listener;
-
-    private boolean canSend;
 
     public TCPConnectorImpl(){}
 
@@ -69,8 +70,7 @@ public class TCPConnectorImpl implements TCPConnector{
         }
         Log.i(TAG,"发送就绪"+Arrays.toString(data));
         //put不行
-        writeBuffer = ByteBuffer.wrap(data);
-        canSend = true;
+        messageQueue.offer(ByteBuffer.wrap(data));
         if(listener!=null){
             listener.sendComplete(data);
         }
@@ -243,11 +243,10 @@ public class TCPConnectorImpl implements TCPConnector{
      */
     private void handlerWriter(SelectionKey key)throws IOException{
         try{
-            if(canSend){
+            if(!messageQueue.isEmpty()){
                 Log.i(TAG,"发送了一条数据");
-                socketChannel.write(writeBuffer);
-                canSend = false;
-                writeBuffer.clear();
+                //移除并返回
+                socketChannel.write(messageQueue.poll());
             }
         }catch (IOException e){
             Log.e(TAG,"发送数据异常");
