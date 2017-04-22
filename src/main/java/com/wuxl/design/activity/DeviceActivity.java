@@ -1,11 +1,16 @@
 package com.wuxl.design.activity;
 
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
@@ -28,15 +33,20 @@ import android.widget.ListView;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.cjj.MaterialRefreshLayout;
 import com.cjj.MaterialRefreshListener;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 import com.wuxl.design.R;
 import com.wuxl.design.connect.protocol.DataProtocol;
 import com.wuxl.design.model.WifiDevice;
 import com.wuxl.design.model.WifiDeviceConnectManager;
 import com.wuxl.design.model.WifiListener;
+import com.wuxl.design.utils.AppUtils;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -51,11 +61,16 @@ import static com.wuxl.design.utils.DataUtils.toByte;
  * Created by wuxingle on 2017/4/10 0010.
  */
 public class DeviceActivity extends AppCompatActivity
-        implements Toolbar.OnMenuItemClickListener{
+        implements Toolbar.OnMenuItemClickListener {
 
     private static final String TAG = "DeviceActivity";
 
+    private static final String DEVICE_FILE = "devices.bat";
+
+    //handler message
     private static final int REFRESH_OVER = 1;
+    private static final int STATE_CHANGE = 2;
+    private static final int CONNECT_STATUS = 3;
 
     private Toolbar toolbar;
     private DrawerLayout drawerLayout;
@@ -85,6 +100,12 @@ public class DeviceActivity extends AppCompatActivity
     //在线设备数
     private int onlineCount = 0;
 
+    //是否正在刷新
+    private boolean isRefreshing;
+
+    //上一次按返回键的时间
+    private long lastPressBackTime;
+
     private Handler handler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
@@ -92,6 +113,26 @@ public class DeviceActivity extends AppCompatActivity
                 case REFRESH_OVER:
                     Log.i(TAG, "handler到达");
                     refreshLayout.finishRefresh();
+                    break;
+                case STATE_CHANGE:
+                    Log.i(TAG,"状态改变");
+                    deviceListAdapter.modifyDeviceStatus(msg.arg1,ONLINE);
+                    break;
+                case CONNECT_STATUS:
+                    if(msg.arg1 == 0){
+                        Toast.makeText(DeviceActivity.this,"连接服务器失败",Toast.LENGTH_SHORT).show();
+                        deviceListAdapter.modifyAllDeviceStatus(UNONLINE);
+                        refreshLayout.finishRefresh();
+                    }else {
+                        //断开重连的
+                        if(isRefreshing){
+                            refreshDevice();
+                        }
+                        //第一次连接成功的
+                        else {
+                            refreshLayout.autoRefresh();
+                        }
+                    }
                     break;
                 default:
                     break;
@@ -110,17 +151,20 @@ public class DeviceActivity extends AppCompatActivity
         ip = getResources().getString(R.string.server_ip);
         port = Integer.parseInt(getResources().getString(R.string.server_port));
 
+        ArrayList<WifiDevice> devices = readWifiDevice();
+        Log.i(TAG,"读取的设备为："+devices);
+
         initView();
         initToolBar();
         initRefreshView();
-        initListView();
+        initListView(devices);
 
         initAdditionDialog();
         initModifyDialog();
 
-        deviceManager = WifiDeviceConnectManager.getInstance(this);
+        deviceManager = WifiDeviceConnectManager.getInstance();
         deviceManager.setListener(listener);
-        deviceManager.ready();
+        deviceManager.ready(this);
     }
 
     @Override
@@ -136,36 +180,59 @@ public class DeviceActivity extends AppCompatActivity
     protected void onDestroy() {
         super.onDestroy();
         deviceManager.close();
+        writeWifiDevice();
         Log.i(TAG, "device activity destroy");
     }
 
-    /**
-     * 是否可连接
-     */
-    private WifiListener listener = new WifiListener() {
 
-        @Override
-        public void canConnect() {
-            Log.i(TAG, "可以连接");
-            deviceManager.connect(ip, port);
-        }
-
-        @Override
-        public void isOnline(String hexId) {
-            if(onlineCount==deviceListAdapter.getCount()){
-                refreshLayout.finishRefresh();
-            }
-            for (int i = 0; i < deviceListAdapter.getCount(); i++) {
-                WifiDevice device = deviceListAdapter.getItem(i);
-                if (device.getStatus()!=ONLINE &&
-                        hexId.equals(device.getHexId())) {
-                    //修改状态但不更新
-                    deviceListAdapter.getItem(i).setStatus(ONLINE);
-                    onlineCount++;
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        switch (requestCode) {
+            case AppUtils.CAMERA_OK:
+                if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    openCamera();
+                } else {
+                    additionDialog.show();
+                    Log.i(TAG, "调用摄像头被拒绝");
                 }
-            }
+                break;
+            default:
+                break;
         }
-    };
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        IntentResult intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
+        if (intentResult != null) {
+            // ScanResult 为获取到的字符串
+            String scanResult = intentResult.getContents();
+            if(scanResult!=null){
+                String addResult = addDevice(scanResult);
+                Toast.makeText(this, addResult, Toast.LENGTH_LONG).show();
+            }
+            Log.i(TAG, "拿到:" + scanResult);
+        } else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if(isRefreshing){
+            refreshLayout.finishRefresh();
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if(now - lastPressBackTime < 2000){
+            Log.i(TAG,"程序退出");
+            finish();
+            return;
+        }
+        lastPressBackTime = now;
+        Toast.makeText(this,"再按一次返回键退出",Toast.LENGTH_SHORT).show();
+    }
 
     /**
      * toolbar的菜单点击
@@ -177,28 +244,36 @@ public class DeviceActivity extends AppCompatActivity
     public boolean onMenuItemClick(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.menu_add:
-                additionDialog.show();
+                if (AppUtils.haveCamerPerssion(this)) {
+                    openCamera();
+                } else {
+                    AppUtils.applyCameraPerssion(this);
+                }
+                break;
+            case R.id.menu_set:
+                startActivity(new Intent(this,SettingActivity.class));
+                break;
+            default:
                 break;
         }
         return true;
     }
 
     /**
-     * listView的context菜单
+     * context菜单
      */
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v,
                                     ContextMenu.ContextMenuInfo menuInfo) {
-        //menu.setHeaderTitle("人物简介");
         //添加菜单项
         menu.add(0, Menu.FIRST, 0, "修改设备名");
-        menu.add(0, Menu.FIRST + 1, 0, "删除设备");
-        menu.add(0, Menu.FIRST + 2, 0, "查看详情");
+        menu.add(0, Menu.FIRST + 1, 0, "查看详情");
+        menu.add(0, Menu.FIRST + 2, 0, "删除设备");
         super.onCreateContextMenu(menu, v, menuInfo);
     }
 
     /**
-     * listView的菜单点击事件
+     * context菜单点击
      */
     @Override
     public boolean onContextItemSelected(MenuItem item) {
@@ -209,16 +284,66 @@ public class DeviceActivity extends AppCompatActivity
                 modifyDialog.show();
                 break;
             case Menu.FIRST + 1:
-                deviceListAdapter.remove(currentSelected);
+                lookDetail(currentSelected);
                 break;
             case Menu.FIRST + 2:
-                Log.i(TAG, "点击了第3项,list:" + info.position);
+                deviceListAdapter.remove(currentSelected);
                 break;
             default:
                 break;
         }
         return super.onContextItemSelected(item);
     }
+
+    /**
+     * 连接状态监听
+     */
+    private WifiListener listener = new WifiListener() {
+
+        @Override
+        public void canConnect() {
+            Log.i(TAG, "可以连接");
+            deviceManager.connect(ip, port);
+        }
+
+        @Override
+        public void connectResult(boolean result) {
+            Message message = handler.obtainMessage();
+            message.what = CONNECT_STATUS;
+            if(result){
+                message.arg1 = 1;
+                Log.i(TAG,"连接成功");
+            }else {
+                message.arg1 = 0;
+                Log.i(TAG,"连接失败");
+            }
+            handler.sendMessage(message);
+        }
+
+        @Override
+        public void isOnline(String hexId) {
+            if(!isRefreshing){
+                return;
+            }
+            for (int i = 0; i < deviceListAdapter.getCount(); i++) {
+                WifiDevice device = deviceListAdapter.getItem(i);
+                if (device.getStatus() != ONLINE &&
+                        hexId.equals(device.getHexId())) {
+                    //修改状态
+                    Message message = handler.obtainMessage();
+                    message.arg1 = i;
+                    message.what = STATE_CHANGE;
+                    handler.sendMessage(message);
+                    onlineCount++;
+                    break;
+                }
+            }
+            if (onlineCount == deviceListAdapter.getCount()) {
+                Log.i(TAG,"停止刷新,全部找到");
+                refreshLayout.finishRefresh();
+            }
+        }
+    };
 
     /**
      * seekBar的监听
@@ -242,21 +367,17 @@ public class DeviceActivity extends AppCompatActivity
                     deviceManager.on(device);
                     break;
                 default:
+                    device.setLightLevel(progress);
                     deviceManager.setPwm(device, progress);
                     break;
             }
-            Log.i(TAG, "seekBar改变" + progress);
         }
 
         @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {
-
-        }
+        public void onStartTrackingTouch(SeekBar seekBar) {}
 
         @Override
-        public void onStopTrackingTouch(SeekBar seekBar) {
-
-        }
+        public void onStopTrackingTouch(SeekBar seekBar) {}
     }
 
 
@@ -297,6 +418,7 @@ public class DeviceActivity extends AppCompatActivity
         public void onfinish() {
             super.onfinish();
             deviceListAdapter.refreshAllStatus();
+            isRefreshing = false;
         }
 
         @Override
@@ -306,18 +428,109 @@ public class DeviceActivity extends AppCompatActivity
 
         @Override
         public void onRefresh(MaterialRefreshLayout materialRefreshLayout) {
-            //修改状态
-            deviceListAdapter.modifyAllDeviceStatus(BUSY);
-            //发送数据
-            for (int i = 0; i < deviceListAdapter.getCount(); i++) {
-                WifiDevice device = deviceListAdapter.getItem(i);
-                deviceManager.isOnline(device);
+            isRefreshing = true;
+            if(deviceManager.isConnectable()){
+                refreshDevice();
+            }else if(!deviceManager.isConnecting()){
+                deviceManager.connect(ip,port);
+                Toast.makeText(DeviceActivity.this,"尝试重新连接,请稍候",Toast.LENGTH_SHORT).show();
             }
-            //3秒后停止
-            handler.sendEmptyMessageDelayed(REFRESH_OVER, 3000);
+            //因为连接速度很快，这种情况不多
+            else {
+                Toast.makeText(DeviceActivity.this,"已在连接中",Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
+    /**
+     * 打开扫一扫
+     */
+    private void openCamera() {
+        new IntentIntegrator(this)
+                .setOrientationLocked(false)
+                .setCaptureActivity(ScanActivity.class) // 设置自定义的activity是CustomActivity
+                .initiateScan(); // 初始化扫描
+    }
+
+    /**
+     * 添加设备
+     *
+     * @param idHex 输入的识别码
+     */
+    private String addDevice(String idHex) {
+        byte[] origin = toByte(idHex);
+        if (origin.length != DataProtocol.ORIGIN_LENGTH) {
+            Log.i(TAG, "添加设备失败,id格式错误");
+            return "识别码格式错误";
+        }
+
+        for (int i = 0; i < deviceListAdapter.getCount(); i++) {
+            if (Arrays.equals(deviceListAdapter.getItem(i).getId(), origin)) {
+                Log.i(TAG, "添加设备失败,重复添加");
+                return "该设备已存在";
+            }
+        }
+
+        WifiDevice wifiDevice = new WifiDevice(origin, idHex);
+        deviceListAdapter.add(wifiDevice);
+        return "添加设备成功";
+    }
+
+    /**
+     * 刷新设备状态
+     */
+    private void refreshDevice(){
+        //修改状态
+        deviceListAdapter.modifyAllDeviceStatus(BUSY);
+        onlineCount = 0;
+        //发送数据
+        for (int i = 0; i < deviceListAdapter.getCount(); i++) {
+            WifiDevice device = deviceListAdapter.getItem(i);
+            deviceManager.isOnline(device);
+        }
+        //3秒后停止
+        handler.sendEmptyMessageDelayed(REFRESH_OVER, 3000);
+    }
+
+    /**
+     * 查看设备细节
+     */
+    private void lookDetail(int index){
+        Intent intent = new Intent(this,DetailActivity.class);
+        WifiDevice device = deviceListAdapter.getItem(index);
+        Bundle bundle = new Bundle();
+        bundle.putParcelable("device",device);
+        intent.putExtras(bundle);
+        startActivity(intent);
+    }
+
+    /**
+     * 读取设备列表
+     */
+    @SuppressWarnings("unchecked")
+    private ArrayList<WifiDevice> readWifiDevice() {
+        try {
+            Object obj = AppUtils.readSerialize(getFilesDir().getPath() + "/" + DEVICE_FILE,
+                    openFileInput(DEVICE_FILE));
+            return obj == null ? new ArrayList<WifiDevice>() : (ArrayList<WifiDevice>) obj;
+        } catch (IOException e) {
+            Log.e(TAG, "读取设备异常",e);
+        }
+        return new ArrayList<>();
+    }
+
+    /**
+     * 保存设备列表
+     */
+    private void writeWifiDevice(){
+        try {
+            boolean suc = AppUtils.writeSerialize(openFileOutput(DEVICE_FILE,Context.MODE_PRIVATE),
+                    deviceListAdapter.getWifiDevices());
+            Log.i(TAG,"保存设备结果:"+suc);
+        }catch (IOException e){
+            Log.e(TAG,"保存设备数据失败");
+        }
+    }
 
     /**
      * 初始化组件
@@ -342,20 +555,8 @@ public class DeviceActivity extends AppCompatActivity
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         String idHex = editText.getText().toString().trim();
-                        byte[] origin = toByte(idHex);
-                        if (origin.length < DataProtocol.ORIGIN_LENGTH) {
-                            Log.i(TAG, "输入错误");
-                            //test
-                            //todo cancel
-                            WifiDevice wifiDevice = new WifiDevice(origin, idHex);
-                            deviceListAdapter.add(wifiDevice);
-                            Log.i(TAG, "添加了设备");
-                        } else {
-                            WifiDevice wifiDevice = new WifiDevice(origin, idHex);
-                            deviceListAdapter.add(wifiDevice);
-                            Log.i(TAG, "添加了设备");
-                        }
-                        Log.i(TAG, "点击了确定");
+                        String result = addDevice(idHex);
+                        Toast.makeText(DeviceActivity.this, result, Toast.LENGTH_SHORT).show();
                     }
                 }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
             @Override
@@ -381,13 +582,11 @@ public class DeviceActivity extends AppCompatActivity
                     public void onClick(DialogInterface dialog, int which) {
                         deviceListAdapter.modifyName(currentSelected,
                                 editText.getText().toString().trim());
-                        Log.i(TAG, "点击了确定");
                     }
                 }).setNegativeButton("取消", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 modifyDialog.dismiss();
-                editText.setText("");
             }
         });
         modifyDialog = builder.create();
@@ -450,17 +649,7 @@ public class DeviceActivity extends AppCompatActivity
     /**
      * 初始化listView
      */
-    private void initListView() {
-        ArrayList<WifiDevice> devices = new ArrayList<>();
-
-        byte[] target1 = new byte[6];
-        Arrays.fill(target1,(byte)0xab);
-        byte[] target2 = new byte[6];
-        Arrays.fill(target2,(byte)0xef);
-
-        devices.add(new WifiDevice(target1, "哈哈"));
-        devices.add(new WifiDevice(target2, "呵呵"));
-
+    private void initListView(ArrayList<WifiDevice> devices) {
         deviceListAdapter = new DeviceListAdapter(devices);
         deviceListView.setAdapter(deviceListAdapter);
         registerForContextMenu(deviceListView);
@@ -475,6 +664,13 @@ public class DeviceActivity extends AppCompatActivity
 
         public DeviceListAdapter(ArrayList<WifiDevice> devices) {
             this.wifiDevices = devices;
+        }
+
+        /**
+         * 得到传感器列表
+         */
+        public ArrayList<WifiDevice> getWifiDevices() {
+            return wifiDevices;
         }
 
         /**

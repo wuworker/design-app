@@ -40,7 +40,7 @@
 
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="25dp"
+        android:layout_height="40dp"
         android:layout_below="@id/item_first_zk">
         <RelativeLayout
             android:id="@+id/item_zk"
@@ -57,7 +57,7 @@
         <SeekBar
             android:id="@+id/device_bar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:max="100"
             android:layout_toEndOf="@id/item_zk"
             android:layout_centerVertical="true"/>

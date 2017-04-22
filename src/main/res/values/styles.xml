@@ -15,4 +15,14 @@
         <item name="actionMenuTextColor">@color/black</item>
     </style>
 
+    <!-- detail layout -->
+    <style name="DeviceDetailTitleStyle">
+        <item name="android:layout_margin">5dp</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+    <style name="DeviceDetailContentStyle">
+        <item name="android:layout_marginStart">60dp</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
 </resources>

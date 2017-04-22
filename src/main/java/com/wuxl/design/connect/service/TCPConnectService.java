@@ -90,16 +90,27 @@ public class TCPConnectService extends Service{
      * 启动
      */
     public void connect(final String ip,final int port){
-        if(connector.isConnect()){
-            Log.i(TAG,"tcp已在连接");
-            return;
-        }
+
         threadPool.execute(new Runnable() {
             @Override
             public void run() {
                 connector.connect(ip,port);
             }
         });
+    }
+
+    /**
+     * 是否在连接
+     */
+    public boolean isConnecting(){
+        return connector.isConnecting();
+    }
+
+    /**
+     * 连接是否可用
+     */
+    public boolean isConnectable(){
+        return connector.isConnectable();
     }
 
     /**

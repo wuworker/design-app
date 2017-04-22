@@ -11,6 +11,7 @@ import android.util.Log;
 import com.wuxl.design.connect.ConnectorListener;
 import com.wuxl.design.connect.DataExecutor;
 import com.wuxl.design.connect.protocol.DataPackage;
+import com.wuxl.design.connect.protocol.DataProtocol;
 import com.wuxl.design.connect.service.TCPConnectService;
 
 import java.util.Arrays;
@@ -54,9 +55,7 @@ public class WifiDeviceConnectManager {
         }
 
         @Override
-        public void onServiceDisconnected(ComponentName name) {
-
-        }
+        public void onServiceDisconnected(ComponentName name) {}
     };
 
     /**
@@ -65,8 +64,15 @@ public class WifiDeviceConnectManager {
     private ConnectorListener connectListener = new ConnectorListener() {
         @Override
         public void connectResult(boolean success) {
-            Log.i(TAG,"连接"+success);
-            dataExecutor.sendData(1,1000);
+            if(success){
+                Log.i(TAG,"连接成功，进行注册");
+                dataExecutor.sendData(new byte[DataProtocol.TARGET_LENGTH],1,1000);
+                if(wifiListener!=null){
+                    wifiListener.connectResult(true);
+                }
+            }else {
+                wifiListener.connectResult(false);
+            }
         }
 
         @Override
@@ -96,21 +102,21 @@ public class WifiDeviceConnectManager {
         @Override
         public void connectLost(String msg) {
             Log.i(TAG,"与服务器断开连接");
+            if(wifiListener!=null){
+                wifiListener.connectResult(false);
+            }
         }
     };
 
-    private WifiDeviceConnectManager(Context context){
-        this.context = context;
-    }
+    private WifiDeviceConnectManager(){}
 
     /**
      * 获得单例
-     * @param context context
      * @return manager
      */
-    public static WifiDeviceConnectManager getInstance(Context context){
+    public static WifiDeviceConnectManager getInstance(){
         if(connectManager == null){
-            connectManager = new WifiDeviceConnectManager(context);
+            connectManager = new WifiDeviceConnectManager();
         }
         return connectManager;
     }
@@ -118,7 +124,8 @@ public class WifiDeviceConnectManager {
     /**
      * 开启service服务
      */
-    public void ready(){
+    public void ready(Context context){
+        this.context = context;
         if(isReady()){
             Log.w(TAG,"连接已就绪");
             return;
@@ -140,6 +147,20 @@ public class WifiDeviceConnectManager {
             return;
         }
         service.connect(ip,port);
+    }
+
+    /**
+     * 是否正在连接
+     */
+    public boolean isConnecting(){
+        return service.isConnecting();
+    }
+
+    /**
+     * 连接是否可用
+     */
+    public boolean isConnectable(){
+        return service.isConnectable();
     }
 
     /**

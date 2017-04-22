@@ -12,6 +12,11 @@ public interface WifiListener {
     void canConnect();
 
     /**
+     * 连接结果
+     */
+    void connectResult(boolean result);
+
+    /**
      * 在线通知
      * @param hexId 设备id
      */

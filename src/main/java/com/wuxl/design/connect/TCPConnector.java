@@ -27,8 +27,13 @@ public interface TCPConnector {
     void sendData(byte[] data);
 
     /**
-     * 是否连接
+     * 是否正在连接
      */
-    boolean isConnect();
+    boolean isConnecting();
+
+    /**
+     * 连接是否可用
+     */
+    boolean isConnectable();
 
 }

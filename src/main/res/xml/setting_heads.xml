@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="用户">
+        <Preference
+            android:title="个人资料"/>
+        <Preference
+            android:title="账号与安全"/>
+        <Preference
+            android:title="设备管理"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="功能">
+        <SwitchPreference
+            android:title="自动重连"/>
+        <SwitchPreference
+            android:title="夜间模式"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="关于">
+        <Preference
+            android:title="功能介绍"/>
+        <Preference
+            android:title="检查更新"/>
+        <Preference
+            android:title="关于智能灯"/>
+    </PreferenceCategory>
+
+
+</PreferenceScreen>
