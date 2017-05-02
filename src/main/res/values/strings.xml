@@ -4,7 +4,7 @@
     <string name="app_version">版本1.0.0</string>
     <string name="app_time_name">2017.4.22\t 吴醒乐\t 毕业设计</string>
 
-    <string name="server_ip">192.168.1.109</string>
+    <string name="server_ip">192.168.1.107</string>
     <string name="server_port">9999</string>
 
     <string name="bar_open">打开</string>

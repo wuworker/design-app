@@ -51,7 +51,6 @@ public class TCPConnectService extends Service{
         binder = new LocalBinder();
         dataExecutor = DataExecutor.getDefaultDataExecutor(connector);
         dataExecutor.setOrigin(origin);
-        dataExecutor.setTarget(new byte[6]);
 
         Log.i(TAG,"service启动");
     }

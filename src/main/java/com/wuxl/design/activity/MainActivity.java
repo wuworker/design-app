@@ -10,7 +10,7 @@ import com.wuxl.design.R;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static com.wuxl.design.utils.AppUtils.setStatusBarColor;
+import static com.wuxl.design.common.utils.AppUtils.setStatusBarColor;
 
 /**
  * 首页

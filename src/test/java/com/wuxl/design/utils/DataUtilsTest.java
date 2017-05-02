@@ -1,5 +1,7 @@
 package com.wuxl.design.utils;
 
+import com.wuxl.design.common.utils.DataUtils;
+
 import org.junit.Test;
 
 import java.util.Arrays;

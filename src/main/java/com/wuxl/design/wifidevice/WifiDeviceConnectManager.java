@@ -1,4 +1,4 @@
-package com.wuxl.design.model;
+package com.wuxl.design.wifidevice;
 
 import android.app.Service;
 import android.content.ComponentName;
@@ -10,17 +10,13 @@ import android.util.Log;
 
 import com.wuxl.design.connect.ConnectorListener;
 import com.wuxl.design.connect.DataExecutor;
+import com.wuxl.design.connect.protocol.DataCmdSender;
 import com.wuxl.design.connect.protocol.DataPackage;
-import com.wuxl.design.connect.protocol.DataProtocol;
 import com.wuxl.design.connect.service.TCPConnectService;
 
 import java.util.Arrays;
 
-import static com.wuxl.design.connect.protocol.DataProtocol.CMD_OFF;
-import static com.wuxl.design.connect.protocol.DataProtocol.CMD_ON;
-import static com.wuxl.design.connect.protocol.DataProtocol.CMD_ONLINE;
-import static com.wuxl.design.connect.protocol.DataProtocol.CMD_PWM;
-import static com.wuxl.design.connect.protocol.DataProtocol.OK_ONLINE;
+import static com.wuxl.design.connect.protocol.DataProtocol.OK;
 /**
  * Created by wuxingle on 2017/4/16 0016.
  * wifi设备的连接管理
@@ -39,6 +35,8 @@ public class WifiDeviceConnectManager {
 
     private WifiListener wifiListener;
 
+    private DataCmdSender cmdSender;
+
     /**
      * android service连接
      */
@@ -49,6 +47,7 @@ public class WifiDeviceConnectManager {
             WifiDeviceConnectManager.this.service = binder.getService();
             WifiDeviceConnectManager.this.service.setConnectListener(connectListener);
             dataExecutor = WifiDeviceConnectManager.this.service.getDataExecutor();
+            cmdSender = new WifiDeviceCmdSender(WifiDeviceConnectManager.this,dataExecutor);
             if(wifiListener!=null){
                 wifiListener.canConnect();
             }
@@ -66,7 +65,7 @@ public class WifiDeviceConnectManager {
         public void connectResult(boolean success) {
             if(success){
                 Log.i(TAG,"连接成功，进行注册");
-                dataExecutor.sendData(new byte[DataProtocol.TARGET_LENGTH],1,1000);
+                cmdSender.register();
                 if(wifiListener!=null){
                     wifiListener.connectResult(true);
                 }
@@ -83,7 +82,7 @@ public class WifiDeviceConnectManager {
                 Log.i(TAG,"解析失败,忽略这次数据");
                 return;
             }
-            if(OK_ONLINE == dataPackage.getCmd()){
+            if(OK == dataPackage.getCmd()){
                 if(wifiListener!=null){
                     wifiListener.isOnline(dataPackage.getHexOrigin());
                 }
@@ -91,7 +90,7 @@ public class WifiDeviceConnectManager {
             }
             Log.d(TAG,"收到数据origin:"+dataPackage.getHexOrigin());
             Log.d(TAG,"收到数据cmd:"+dataPackage.getCmd());
-            Log.d(TAG,"收到数据data:"+dataPackage.getData());
+            Log.d(TAG,"收到数据data:"+Arrays.toString(dataPackage.getData()));
         }
 
         @Override
@@ -150,6 +149,17 @@ public class WifiDeviceConnectManager {
     }
 
     /**
+     * 获得数据发送接口
+     * 只有service启动后才能获取
+     */
+    public DataCmdSender getCmdSender(){
+        if(cmdSender == null){
+            throw new RuntimeException("service未启动，不能获取");
+        }
+        return cmdSender;
+    }
+
+    /**
      * 是否正在连接
      */
     public boolean isConnecting(){
@@ -164,60 +174,11 @@ public class WifiDeviceConnectManager {
     }
 
     /**
-     * 打开设备
-     * @param wifiDevice 设备
+     * 准备就绪的标准是service已启动
+     * @return isReady
      */
-    public void on(WifiDevice wifiDevice){
-        if(isReady()){
-            Log.i(TAG,"打开设备");
-            dataExecutor.sendData(wifiDevice.getId(),CMD_ON,100);
-        }else {
-            Log.w(TAG,"service未启动");
-        }
-
-    }
-
-    /**
-     * 关闭设备
-     * @param wifiDevice 设备
-     */
-    public void off(WifiDevice wifiDevice){
-        if(isReady()){
-            Log.i(TAG,"关闭设备");
-            dataExecutor.sendData(wifiDevice.getId(),CMD_OFF,0);
-        }else {
-            Log.w(TAG,"service未启动");
-        }
-    }
-
-    /**
-     * 调整设备亮度
-     * @param wifiDevice 设备
-     * @param percent 百分比
-     */
-    public void setPwm(WifiDevice wifiDevice,int percent){
-        if(isReady()){
-            if(percent<0 || percent>100){
-                Log.w(TAG,"pwm的百分比不合法:"+percent);
-            }
-            Log.i(TAG,"设置设备pwm:"+percent);
-            dataExecutor.sendData(wifiDevice.getId(),CMD_PWM,percent);
-        }else {
-            Log.w(TAG,"service未启动");
-        }
-    }
-
-    /**
-     * 设置设备是否存在
-     * @param wifiDevice 设备
-     */
-    public void isOnline(WifiDevice wifiDevice){
-        if(isReady()){
-            Log.i(TAG,"发送数据,判断设备是否在线,"+ Arrays.toString(wifiDevice.getId()));
-            dataExecutor.sendData(wifiDevice.getId(),CMD_ONLINE,0);
-        }else {
-            Log.w(TAG,"service未启动");
-        }
+    public boolean isReady(){
+        return service!=null && dataExecutor!=null;
     }
 
     /**
@@ -242,11 +203,5 @@ public class WifiDeviceConnectManager {
         this.wifiListener = listener;
     }
 
-    /**
-     * 准备就绪的标准是service已启动
-     * @return isReady
-     */
-    private boolean isReady(){
-        return service!=null && dataExecutor!=null;
-    }
+
 }

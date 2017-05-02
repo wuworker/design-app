@@ -1,4 +1,4 @@
-package com.wuxl.design.utils;
+package com.wuxl.design.common.utils;
 
 import android.app.Activity;
 import android.content.pm.PackageManager;

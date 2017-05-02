@@ -1,4 +1,4 @@
-package com.wuxl.design.model;
+package com.wuxl.design.wifidevice;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -7,7 +7,7 @@ import com.wuxl.design.connect.protocol.DataProtocol;
 
 import java.io.Serializable;
 
-import static com.wuxl.design.utils.DataUtils.toHex;
+import static com.wuxl.design.common.utils.DataUtils.toHex;
 /**
  * wifi设备
  * Created by wuxingle on 2017/4/11 0011.

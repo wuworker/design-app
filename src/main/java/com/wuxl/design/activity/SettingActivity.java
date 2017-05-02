@@ -9,7 +9,7 @@ import android.view.View;
 
 import com.wuxl.design.R;
 
-import static com.wuxl.design.utils.AppUtils.setStatusBarTransparent;
+import static com.wuxl.design.common.utils.AppUtils.setStatusBarTransparent;
 
 /**
  * Created by wuxingle on 2017/4/22 0022.

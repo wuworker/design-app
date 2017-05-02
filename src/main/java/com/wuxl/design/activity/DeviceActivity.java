@@ -40,21 +40,22 @@ import com.cjj.MaterialRefreshListener;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 import com.wuxl.design.R;
+import com.wuxl.design.connect.protocol.DataCmdSender;
 import com.wuxl.design.connect.protocol.DataProtocol;
-import com.wuxl.design.model.WifiDevice;
-import com.wuxl.design.model.WifiDeviceConnectManager;
-import com.wuxl.design.model.WifiListener;
-import com.wuxl.design.utils.AppUtils;
+import com.wuxl.design.wifidevice.WifiDevice;
+import com.wuxl.design.wifidevice.WifiDeviceConnectManager;
+import com.wuxl.design.wifidevice.WifiListener;
+import com.wuxl.design.common.utils.AppUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-import static com.wuxl.design.model.WifiDevice.BUSY;
-import static com.wuxl.design.model.WifiDevice.ONLINE;
-import static com.wuxl.design.model.WifiDevice.UNONLINE;
-import static com.wuxl.design.utils.AppUtils.setStatusBarTransparent;
-import static com.wuxl.design.utils.DataUtils.toByte;
+import static com.wuxl.design.wifidevice.WifiDevice.BUSY;
+import static com.wuxl.design.wifidevice.WifiDevice.ONLINE;
+import static com.wuxl.design.wifidevice.WifiDevice.UNONLINE;
+import static com.wuxl.design.common.utils.AppUtils.setStatusBarTransparent;
+import static com.wuxl.design.common.utils.DataUtils.toByte;
 
 /**
  * 设备界面
@@ -96,6 +97,8 @@ public class DeviceActivity extends AppCompatActivity
 
     //wifi设备连接的管理
     private WifiDeviceConnectManager deviceManager;
+    //命令发送接口
+    private DataCmdSender cmdSender;
 
     //在线设备数
     private int onlineCount = 0;
@@ -123,15 +126,15 @@ public class DeviceActivity extends AppCompatActivity
                         Toast.makeText(DeviceActivity.this,"连接服务器失败",Toast.LENGTH_SHORT).show();
                         deviceListAdapter.modifyAllDeviceStatus(UNONLINE);
                         refreshLayout.finishRefresh();
-                    }else {
-                        //断开重连的
-                        if(isRefreshing){
-                            refreshDevice();
-                        }
-                        //第一次连接成功的
-                        else {
-                            refreshLayout.autoRefresh();
-                        }
+                        return true;
+                    }
+                    //断开重连的
+                    if(isRefreshing){
+                        refreshDevice();
+                    }
+                    //第一次连接成功的
+                    else {
+                        refreshLayout.autoRefresh();
                     }
                     break;
                 default:
@@ -304,6 +307,7 @@ public class DeviceActivity extends AppCompatActivity
         public void canConnect() {
             Log.i(TAG, "可以连接");
             deviceManager.connect(ip, port);
+            cmdSender = deviceManager.getCmdSender();
         }
 
         @Override
@@ -313,6 +317,8 @@ public class DeviceActivity extends AppCompatActivity
             if(result){
                 message.arg1 = 1;
                 Log.i(TAG,"连接成功");
+                //// TODO: 2017/5/2 0002
+                //发送自己对哪些设备感兴趣
             }else {
                 message.arg1 = 0;
                 Log.i(TAG,"连接失败");
@@ -346,6 +352,39 @@ public class DeviceActivity extends AppCompatActivity
     };
 
     /**
+     * 刷新时的监听器
+     */
+    private class RefreshListener extends MaterialRefreshListener {
+        @Override
+        public void onfinish() {
+            super.onfinish();
+            deviceListAdapter.refreshAllStatus();
+            isRefreshing = false;
+        }
+
+        @Override
+        public void onRefreshLoadMore(MaterialRefreshLayout materialRefreshLayout) {
+            super.onRefreshLoadMore(materialRefreshLayout);
+        }
+
+        @Override
+        public void onRefresh(MaterialRefreshLayout materialRefreshLayout) {
+            isRefreshing = true;
+            if(deviceManager.isConnectable()){
+                refreshDevice();
+            }else if(!deviceManager.isConnecting()){
+                deviceManager.connect(ip,port);
+                Toast.makeText(DeviceActivity.this,"尝试重新连接,请稍候",Toast.LENGTH_SHORT).show();
+            }
+            //因为连接速度很快，这种情况不多
+            else {
+                Toast.makeText(DeviceActivity.this,"已在连接中",Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+
+    /**
      * seekBar的监听
      * 由switch控制,发送通过这个
      */
@@ -361,14 +400,14 @@ public class DeviceActivity extends AppCompatActivity
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
             switch (progress) {
                 case 0:
-                    deviceManager.off(device);
+                    cmdSender.off(device);
                     break;
                 case 100:
-                    deviceManager.on(device);
+                    cmdSender.on(device);
                     break;
                 default:
                     device.setLightLevel(progress);
-                    deviceManager.setPwm(device, progress);
+                    cmdSender.setPwm(device, progress);
                     break;
             }
         }
@@ -411,38 +450,6 @@ public class DeviceActivity extends AppCompatActivity
 
 
     /**
-     * 刷新时的监听器
-     */
-    private class RefreshListener extends MaterialRefreshListener {
-        @Override
-        public void onfinish() {
-            super.onfinish();
-            deviceListAdapter.refreshAllStatus();
-            isRefreshing = false;
-        }
-
-        @Override
-        public void onRefreshLoadMore(MaterialRefreshLayout materialRefreshLayout) {
-            super.onRefreshLoadMore(materialRefreshLayout);
-        }
-
-        @Override
-        public void onRefresh(MaterialRefreshLayout materialRefreshLayout) {
-            isRefreshing = true;
-            if(deviceManager.isConnectable()){
-                refreshDevice();
-            }else if(!deviceManager.isConnecting()){
-                deviceManager.connect(ip,port);
-                Toast.makeText(DeviceActivity.this,"尝试重新连接,请稍候",Toast.LENGTH_SHORT).show();
-            }
-            //因为连接速度很快，这种情况不多
-            else {
-                Toast.makeText(DeviceActivity.this,"已在连接中",Toast.LENGTH_SHORT).show();
-            }
-        }
-    }
-
-    /**
      * 打开扫一扫
      */
     private void openCamera() {
@@ -480,13 +487,16 @@ public class DeviceActivity extends AppCompatActivity
      * 刷新设备状态
      */
     private void refreshDevice(){
+        if(deviceListAdapter.getCount()==0){
+            return;
+        }
         //修改状态
         deviceListAdapter.modifyAllDeviceStatus(BUSY);
         onlineCount = 0;
         //发送数据
         for (int i = 0; i < deviceListAdapter.getCount(); i++) {
             WifiDevice device = deviceListAdapter.getItem(i);
-            deviceManager.isOnline(device);
+            cmdSender.isOnline(device);
         }
         //3秒后停止
         handler.sendEmptyMessageDelayed(REFRESH_OVER, 3000);

@@ -2,14 +2,14 @@ package com.wuxl.design.connect;
 
 import android.util.Log;
 
-import com.wuxl.design.connect.impl.DataExecutorImpl;
+import com.wuxl.design.connect.impl.DefaultDataExecutor;
 import com.wuxl.design.connect.protocol.DataPackage;
 
 import java.util.Arrays;
 
 /**
- * 数据接收解析和发送封装
  * Created by wuxingle on 2017/4/12 0012.
+ * 数据接收解析和发送封装
  */
 public abstract class DataExecutor {
 
@@ -21,8 +21,7 @@ public abstract class DataExecutor {
 
     private byte[] origin;
 
-    public DataExecutor(TCPConnector connector){
-        this.connector = connector;
+    public DataExecutor(){
         dataPackage = new DataPackage();
     }
 
@@ -32,7 +31,9 @@ public abstract class DataExecutor {
      * @return executor
      */
     public static DataExecutor getDefaultDataExecutor(TCPConnector connector){
-        return new DataExecutorImpl(connector);
+        DataExecutor dataExecutor = new DefaultDataExecutor();
+        dataExecutor.setConnector(connector);
+        return dataExecutor;
     }
 
     /**
@@ -61,8 +62,12 @@ public abstract class DataExecutor {
         sendData(cmd,data);
     }
 
-    public void sendData(byte[] target,int cmd,int data){
-        sendData(target,(byte)cmd,data);
+    /**
+     * 无数据发送
+     */
+    public void sendData(byte[] target,byte cmd){
+        dataPackage.setTarget(target);
+        sendData(cmd);
     }
 
     /**
@@ -71,13 +76,17 @@ public abstract class DataExecutor {
      * @param data data
      */
     public void sendData(byte cmd,int data){
-        dataPackage.setCmd(cmd);
-        dataPackage.setData(data);
-        sendData(dataPackage);
+        dataPackage.getData()[0]=(byte)data;
+        dataPackage.setDataLen(1);
+        sendData(cmd);
     }
 
-    public void sendData(int cmd,int data){
-        sendData((byte)cmd,data);
+    /**
+     * 发送无数据命令
+     */
+    public void sendData(byte cmd){
+        dataPackage.setCmd(cmd);
+        sendData(dataPackage);
     }
 
     /**
@@ -93,6 +102,8 @@ public abstract class DataExecutor {
         } else {
             Log.w(TAG,"没有连接");
         }
+        //清空数据
+        dataPackage.clear();
     }
 
     /**
@@ -121,4 +132,11 @@ public abstract class DataExecutor {
         dataPackage.setOrigin(origin);
     }
 
+    public TCPConnector getConnector() {
+        return connector;
+    }
+
+    public void setConnector(TCPConnector connector) {
+        this.connector = connector;
+    }
 }

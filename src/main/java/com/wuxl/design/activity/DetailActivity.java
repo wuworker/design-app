@@ -8,10 +8,10 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.wuxl.design.R;
-import com.wuxl.design.model.WifiDevice;
-import com.wuxl.design.model.WifiDeviceConnectManager;
+import com.wuxl.design.wifidevice.WifiDevice;
+import com.wuxl.design.wifidevice.WifiDeviceConnectManager;
 
-import static com.wuxl.design.utils.AppUtils.setStatusBarTransparent;
+import static com.wuxl.design.common.utils.AppUtils.setStatusBarTransparent;
 
 /**
  * Created by wuxingle on 2017/4/22 0022.

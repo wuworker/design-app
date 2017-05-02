@@ -1,4 +1,4 @@
-package com.wuxl.design.model;
+package com.wuxl.design.wifidevice;
 
 /**
  * Created by wuxingle on 2017/4/16 0016.

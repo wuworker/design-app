@@ -1,4 +1,4 @@
-package com.wuxl.design.utils;
+package com.wuxl.design.common.utils;
 
 /**
  * 公共的工具类
