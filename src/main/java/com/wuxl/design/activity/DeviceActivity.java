@@ -70,8 +70,9 @@ public class DeviceActivity extends AppCompatActivity
 
     //handler message
     private static final int REFRESH_OVER = 1;
-    private static final int STATE_CHANGE = 2;
+    private static final int STATE_ONLINE = 2;
     private static final int CONNECT_STATUS = 3;
+    private static final int STATE_CHANGE = 4;
 
     private Toolbar toolbar;
     private DrawerLayout drawerLayout;
@@ -117,8 +118,8 @@ public class DeviceActivity extends AppCompatActivity
                     Log.i(TAG, "handler到达");
                     refreshLayout.finishRefresh();
                     break;
-                case STATE_CHANGE:
-                    Log.i(TAG,"状态改变");
+                case STATE_ONLINE:
+                    Log.i(TAG,"设备在线");
                     deviceListAdapter.modifyDeviceStatus(msg.arg1,ONLINE);
                     break;
                 case CONNECT_STATUS:
@@ -126,6 +127,9 @@ public class DeviceActivity extends AppCompatActivity
                         Toast.makeText(DeviceActivity.this,"连接服务器失败",Toast.LENGTH_SHORT).show();
                         deviceListAdapter.modifyAllDeviceStatus(UNONLINE);
                         refreshLayout.finishRefresh();
+                        return true;
+                    }
+                    if(deviceListAdapter.getCount()==0){
                         return true;
                     }
                     //断开重连的
@@ -136,6 +140,11 @@ public class DeviceActivity extends AppCompatActivity
                     else {
                         refreshLayout.autoRefresh();
                     }
+                    break;
+                case STATE_CHANGE:
+                    deviceListAdapter.modifyDeviceStatus(msg.arg1,msg.arg2);
+                    String tip = msg.arg2 == ONLINE ? "设备已上线":"设备掉线";
+                    Toast.makeText(DeviceActivity.this,tip,Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     break;
@@ -303,6 +312,7 @@ public class DeviceActivity extends AppCompatActivity
      */
     private WifiListener listener = new WifiListener() {
 
+        //可以开始连接
         @Override
         public void canConnect() {
             Log.i(TAG, "可以连接");
@@ -310,6 +320,7 @@ public class DeviceActivity extends AppCompatActivity
             cmdSender = deviceManager.getCmdSender();
         }
 
+        //连接结果
         @Override
         public void connectResult(boolean result) {
             Message message = handler.obtainMessage();
@@ -317,8 +328,8 @@ public class DeviceActivity extends AppCompatActivity
             if(result){
                 message.arg1 = 1;
                 Log.i(TAG,"连接成功");
-                //// TODO: 2017/5/2 0002
                 //发送自己对哪些设备感兴趣
+                cmdSender.addInterested(deviceListAdapter.getWifiDevices());
             }else {
                 message.arg1 = 0;
                 Log.i(TAG,"连接失败");
@@ -326,6 +337,7 @@ public class DeviceActivity extends AppCompatActivity
             handler.sendMessage(message);
         }
 
+        //设备在线通知,app主动发送
         @Override
         public void isOnline(String hexId) {
             if(!isRefreshing){
@@ -338,7 +350,7 @@ public class DeviceActivity extends AppCompatActivity
                     //修改状态
                     Message message = handler.obtainMessage();
                     message.arg1 = i;
-                    message.what = STATE_CHANGE;
+                    message.what = STATE_ONLINE;
                     handler.sendMessage(message);
                     onlineCount++;
                     break;
@@ -347,6 +359,26 @@ public class DeviceActivity extends AppCompatActivity
             if (onlineCount == deviceListAdapter.getCount()) {
                 Log.i(TAG,"停止刷新,全部找到");
                 refreshLayout.finishRefresh();
+            }
+        }
+
+        //设备状态改变,服务器主动发送
+        @Override
+        public void changeStatus(String hexId, boolean status) {
+            Log.i(TAG,"设备状态改变");
+            int newStatus = status ? ONLINE : UNONLINE;
+            for(int i=0;i<deviceListAdapter.getCount();i++){
+                WifiDevice device = deviceListAdapter.getItem(i);
+                if(device.getHexId().equals(hexId)
+                    && device.getStatus()!=newStatus){
+                    //修改状态
+                    Message message = handler.obtainMessage();
+                    message.arg1 = i;
+                    message.arg2 = newStatus;
+                    message.what = STATE_CHANGE;
+                    handler.sendMessage(message);
+                    break;
+                }
             }
         }
     };
@@ -487,9 +519,6 @@ public class DeviceActivity extends AppCompatActivity
      * 刷新设备状态
      */
     private void refreshDevice(){
-        if(deviceListAdapter.getCount()==0){
-            return;
-        }
         //修改状态
         deviceListAdapter.modifyAllDeviceStatus(BUSY);
         onlineCount = 0;

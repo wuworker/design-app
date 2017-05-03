@@ -16,7 +16,10 @@ import com.wuxl.design.connect.service.TCPConnectService;
 
 import java.util.Arrays;
 
+import static com.wuxl.design.connect.protocol.DataProtocol.DOWNING;
 import static com.wuxl.design.connect.protocol.DataProtocol.OK;
+import static com.wuxl.design.connect.protocol.DataProtocol.UPING;
+
 /**
  * Created by wuxingle on 2017/4/16 0016.
  * wifi设备的连接管理
@@ -82,12 +85,28 @@ public class WifiDeviceConnectManager {
                 Log.i(TAG,"解析失败,忽略这次数据");
                 return;
             }
-            if(OK == dataPackage.getCmd()){
-                if(wifiListener!=null){
-                    wifiListener.isOnline(dataPackage.getHexOrigin());
-                }
-                Log.i(TAG,"设备"+dataPackage.getHexOrigin()+"存在");
+            if(wifiListener == null){
+                Log.i(TAG,"未设置wifi的监听");
+                return;
             }
+            switch (dataPackage.getCmd()){
+                case OK:
+                    Log.i(TAG,"设备"+dataPackage.getHexOrigin()+"存在");
+                    wifiListener.isOnline(dataPackage.getHexOrigin());
+                    break;
+                case DOWNING:
+                    Log.i(TAG,"设备掉线");
+                    wifiListener.changeStatus(dataPackage.getHexOrigin(),false);
+                    break;
+                case UPING:
+                    Log.i(TAG,"设备上线");
+                    wifiListener.changeStatus(dataPackage.getHexOrigin(),true);
+                    break;
+                default:
+                    Log.i(TAG,"其他命令");
+                    break;
+            }
+
             Log.d(TAG,"收到数据origin:"+dataPackage.getHexOrigin());
             Log.d(TAG,"收到数据cmd:"+dataPackage.getCmd());
             Log.d(TAG,"收到数据data:"+Arrays.toString(dataPackage.getData()));

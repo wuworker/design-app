@@ -23,6 +23,10 @@ public interface WifiListener {
     void isOnline(String hexId);
 
 
+    /**
+     * 设备状态改变
+     */
+    void changeStatus(String hexId,boolean status);
 
 
 

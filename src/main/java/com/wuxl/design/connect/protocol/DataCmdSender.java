@@ -2,6 +2,8 @@ package com.wuxl.design.connect.protocol;
 
 import com.wuxl.design.wifidevice.WifiDevice;
 
+import java.util.List;
+
 /**
  * Created by wuxingle on 2017/5/2 0002.
  * 命令发送接口
@@ -28,7 +30,10 @@ public interface DataCmdSender {
      */
     void isOnline(WifiDevice device);
 
-
+    /**
+     * 添加设备
+     */
+    void addInterested(List<WifiDevice> devices);
 
     /**
      * 向服务器注册

@@ -6,7 +6,9 @@ import com.wuxl.design.connect.DataExecutor;
 import com.wuxl.design.connect.protocol.DataCmdSender;
 
 import java.util.Arrays;
+import java.util.List;
 
+import static com.wuxl.design.connect.protocol.DataProtocol.ADD_LED;
 import static com.wuxl.design.connect.protocol.DataProtocol.IS_APP;
 import static com.wuxl.design.connect.protocol.DataProtocol.OFF;
 import static com.wuxl.design.connect.protocol.DataProtocol.ON;
@@ -89,6 +91,17 @@ public class WifiDeviceCmdSender implements DataCmdSender {
         }
     }
 
+    @Override
+    public void addInterested(List<WifiDevice> devices) {
+        if(connectManager.isReady()){
+            Log.i(TAG,"添加感兴趣的设备列表");
+            for(WifiDevice device:devices){
+                dataExecutor.sendData(device.getId(),ADD_LED);
+            }
+        }else {
+            Log.w(TAG,"service未启动");
+        }
+    }
 
     /**
      * 向服务器注册
@@ -102,4 +115,5 @@ public class WifiDeviceCmdSender implements DataCmdSender {
             Log.w(TAG,"service未启动");
         }
     }
+
 }
