@@ -14,17 +14,18 @@ import static com.wuxl.design.common.utils.DataUtils.toHex;
  */
 public class WifiDevice implements Serializable,Parcelable {
 
+    //unOnline为0,这样初始化出来默认断开状态
+    public static final int UNONLINE = 0;
+
     public static final int ONLINE = 1;
 
     public static final int BUSY = 2;
-
-    public static final int UNONLINE = 3;
 
     private byte[] id;
 
     private String name;
 
-    private int lightLevel = 100;
+    private int lightLevel = 50;
 
     private transient int status;
 

@@ -92,7 +92,7 @@ public class WifiDeviceConnectManager {
             switch (dataPackage.getCmd()){
                 case OK:
                     Log.i(TAG,"设备"+dataPackage.getHexOrigin()+"存在");
-                    wifiListener.isOnline(dataPackage.getHexOrigin());
+                    wifiListener.isOnline(dataPackage.getHexOrigin(),dataPackage.getData()[0]);
                     break;
                 case DOWNING:
                     Log.i(TAG,"设备掉线");

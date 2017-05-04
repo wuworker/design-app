@@ -6,14 +6,12 @@ import com.wuxl.design.connect.DataExecutor;
 import com.wuxl.design.connect.protocol.DataCmdSender;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static com.wuxl.design.connect.protocol.DataProtocol.ADD_LED;
 import static com.wuxl.design.connect.protocol.DataProtocol.IS_APP;
 import static com.wuxl.design.connect.protocol.DataProtocol.OFF;
 import static com.wuxl.design.connect.protocol.DataProtocol.ON;
 import static com.wuxl.design.connect.protocol.DataProtocol.ONLINE;
-import static com.wuxl.design.connect.protocol.DataProtocol.PWM;
 
 /**
  * Created by wuxingle on 2017/5/2 0002.
@@ -37,15 +35,18 @@ public class WifiDeviceCmdSender implements DataCmdSender {
      * 打开设备
      */
     @Override
-    public void on(WifiDevice device) {
+    public void on(WifiDevice device,int pwm) {
+        if(pwm < 0 || pwm >100){
+            Log.i(TAG,"pwm错误");
+            return;
+        }
         if(connectManager.isReady()){
             Log.i(TAG,"打开设备");
-            dataExecutor.sendData(device.getId(),ON);
+            dataExecutor.sendData(device.getId(),ON,pwm);
         }else {
             Log.w(TAG,"service未启动");
         }
     }
-
 
     /**
      * 关闭设备
@@ -60,24 +61,6 @@ public class WifiDeviceCmdSender implements DataCmdSender {
         }
     }
 
-
-    /**
-     * 设备调光
-     */
-    @Override
-    public void setPwm(WifiDevice device, int pwm) {
-        if(connectManager.isReady()){
-            if(pwm<0 || pwm>100){
-                Log.w(TAG,"pwm的百分比不合法:"+pwm);
-            }
-            Log.i(TAG,"设置设备pwm:"+pwm);
-            dataExecutor.sendData(device.getId(),PWM,pwm);
-        }else {
-            Log.w(TAG,"service未启动");
-        }
-    }
-
-
     /**
      * 判断设备是否在线
      */
@@ -91,13 +74,14 @@ public class WifiDeviceCmdSender implements DataCmdSender {
         }
     }
 
+    /**
+     * 添加设备
+     */
     @Override
-    public void addInterested(List<WifiDevice> devices) {
+    public void addInterested(WifiDevice device) {
         if(connectManager.isReady()){
             Log.i(TAG,"添加感兴趣的设备列表");
-            for(WifiDevice device:devices){
-                dataExecutor.sendData(device.getId(),ADD_LED);
-            }
+            dataExecutor.sendData(device.getId(),ADD_LED);
         }else {
             Log.w(TAG,"service未启动");
         }

@@ -119,21 +119,21 @@ public class DeviceActivity extends AppCompatActivity
                     refreshLayout.finishRefresh();
                     break;
                 case STATE_ONLINE:
-                    Log.i(TAG,"设备在线");
-                    deviceListAdapter.modifyDeviceStatus(msg.arg1,ONLINE);
+                    Log.i(TAG, "设备在线");
+                    deviceListAdapter.modifyDeviceStatus(msg.arg1, ONLINE);
                     break;
                 case CONNECT_STATUS:
-                    if(msg.arg1 == 0){
-                        Toast.makeText(DeviceActivity.this,"连接服务器失败",Toast.LENGTH_SHORT).show();
+                    if (msg.arg1 == 0) {
+                        Toast.makeText(DeviceActivity.this, "连接服务器失败", Toast.LENGTH_SHORT).show();
                         deviceListAdapter.modifyAllDeviceStatus(UNONLINE);
                         refreshLayout.finishRefresh();
                         return true;
                     }
-                    if(deviceListAdapter.getCount()==0){
+                    if (deviceListAdapter.getCount() == 0) {
                         return true;
                     }
                     //断开重连的
-                    if(isRefreshing){
+                    if (isRefreshing) {
                         refreshDevice();
                     }
                     //第一次连接成功的
@@ -142,9 +142,9 @@ public class DeviceActivity extends AppCompatActivity
                     }
                     break;
                 case STATE_CHANGE:
-                    deviceListAdapter.modifyDeviceStatus(msg.arg1,msg.arg2);
-                    String tip = msg.arg2 == ONLINE ? "设备已上线":"设备掉线";
-                    Toast.makeText(DeviceActivity.this,tip,Toast.LENGTH_SHORT).show();
+                    deviceListAdapter.modifyDeviceStatus(msg.arg1, msg.arg2);
+                    String tip = msg.arg2 == ONLINE ? "设备已上线" : "设备掉线";
+                    Toast.makeText(DeviceActivity.this, tip, Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     break;
@@ -164,7 +164,7 @@ public class DeviceActivity extends AppCompatActivity
         port = Integer.parseInt(getResources().getString(R.string.server_port));
 
         ArrayList<WifiDevice> devices = readWifiDevice();
-        Log.i(TAG,"读取的设备为："+devices);
+        Log.i(TAG, "读取的设备为：" + devices);
 
         initView();
         initToolBar();
@@ -220,7 +220,7 @@ public class DeviceActivity extends AppCompatActivity
         if (intentResult != null) {
             // ScanResult 为获取到的字符串
             String scanResult = intentResult.getContents();
-            if(scanResult!=null){
+            if (scanResult != null) {
                 String addResult = addDevice(scanResult);
                 Toast.makeText(this, addResult, Toast.LENGTH_LONG).show();
             }
@@ -232,18 +232,18 @@ public class DeviceActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        if(isRefreshing){
+        if (isRefreshing) {
             refreshLayout.finishRefresh();
             return;
         }
         long now = System.currentTimeMillis();
-        if(now - lastPressBackTime < 2000){
-            Log.i(TAG,"程序退出");
+        if (now - lastPressBackTime < 2000) {
+            Log.i(TAG, "程序退出");
             finish();
             return;
         }
         lastPressBackTime = now;
-        Toast.makeText(this,"再按一次返回键退出",Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "再按一次返回键退出", Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -263,7 +263,7 @@ public class DeviceActivity extends AppCompatActivity
                 }
                 break;
             case R.id.menu_set:
-                startActivity(new Intent(this,SettingActivity.class));
+                startActivity(new Intent(this, SettingActivity.class));
                 break;
             default:
                 break;
@@ -325,22 +325,24 @@ public class DeviceActivity extends AppCompatActivity
         public void connectResult(boolean result) {
             Message message = handler.obtainMessage();
             message.what = CONNECT_STATUS;
-            if(result){
+            if (result) {
                 message.arg1 = 1;
-                Log.i(TAG,"连接成功");
+                Log.i(TAG, "连接成功");
                 //发送自己对哪些设备感兴趣
-                cmdSender.addInterested(deviceListAdapter.getWifiDevices());
-            }else {
+                for (WifiDevice device : deviceListAdapter.getWifiDevices()) {
+                    cmdSender.addInterested(device);
+                }
+            } else {
                 message.arg1 = 0;
-                Log.i(TAG,"连接失败");
+                Log.i(TAG, "连接失败");
             }
             handler.sendMessage(message);
         }
 
         //设备在线通知,app主动发送
         @Override
-        public void isOnline(String hexId) {
-            if(!isRefreshing){
+        public void isOnline(String hexId,int level) {
+            if (!isRefreshing) {
                 return;
             }
             for (int i = 0; i < deviceListAdapter.getCount(); i++) {
@@ -348,6 +350,7 @@ public class DeviceActivity extends AppCompatActivity
                 if (device.getStatus() != ONLINE &&
                         hexId.equals(device.getHexId())) {
                     //修改状态
+                    device.setLightLevel(level);
                     Message message = handler.obtainMessage();
                     message.arg1 = i;
                     message.what = STATE_ONLINE;
@@ -357,7 +360,7 @@ public class DeviceActivity extends AppCompatActivity
                 }
             }
             if (onlineCount == deviceListAdapter.getCount()) {
-                Log.i(TAG,"停止刷新,全部找到");
+                Log.i(TAG, "停止刷新,全部找到");
                 refreshLayout.finishRefresh();
             }
         }
@@ -365,12 +368,12 @@ public class DeviceActivity extends AppCompatActivity
         //设备状态改变,服务器主动发送
         @Override
         public void changeStatus(String hexId, boolean status) {
-            Log.i(TAG,"设备状态改变");
+            Log.i(TAG, "设备状态改变");
             int newStatus = status ? ONLINE : UNONLINE;
-            for(int i=0;i<deviceListAdapter.getCount();i++){
+            for (int i = 0; i < deviceListAdapter.getCount(); i++) {
                 WifiDevice device = deviceListAdapter.getItem(i);
-                if(device.getHexId().equals(hexId)
-                    && device.getStatus()!=newStatus){
+                if (device.getHexId().equals(hexId)
+                        && device.getStatus() != newStatus) {
                     //修改状态
                     Message message = handler.obtainMessage();
                     message.arg1 = i;
@@ -402,15 +405,16 @@ public class DeviceActivity extends AppCompatActivity
         @Override
         public void onRefresh(MaterialRefreshLayout materialRefreshLayout) {
             isRefreshing = true;
-            if(deviceManager.isConnectable()){
+            //连接可用
+            if (deviceManager.isConnectable()) {
                 refreshDevice();
-            }else if(!deviceManager.isConnecting()){
-                deviceManager.connect(ip,port);
-                Toast.makeText(DeviceActivity.this,"尝试重新连接,请稍候",Toast.LENGTH_SHORT).show();
+            } else if (!deviceManager.isConnecting()) {
+                deviceManager.connect(ip, port);
+                Toast.makeText(DeviceActivity.this, "尝试重新连接,请稍候", Toast.LENGTH_SHORT).show();
             }
             //因为连接速度很快，这种情况不多
             else {
-                Toast.makeText(DeviceActivity.this,"已在连接中",Toast.LENGTH_SHORT).show();
+                Toast.makeText(DeviceActivity.this, "已在连接中", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -430,25 +434,21 @@ public class DeviceActivity extends AppCompatActivity
 
         @Override
         public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-            switch (progress) {
-                case 0:
-                    cmdSender.off(device);
-                    break;
-                case 100:
-                    cmdSender.on(device);
-                    break;
-                default:
-                    device.setLightLevel(progress);
-                    cmdSender.setPwm(device, progress);
-                    break;
+            if (progress == 0) {
+                cmdSender.off(device);
+            } else {
+                device.setLightLevel(progress);
+                cmdSender.on(device, progress);
             }
         }
 
         @Override
-        public void onStartTrackingTouch(SeekBar seekBar) {}
+        public void onStartTrackingTouch(SeekBar seekBar) {
+        }
 
         @Override
-        public void onStopTrackingTouch(SeekBar seekBar) {}
+        public void onStopTrackingTouch(SeekBar seekBar) {
+        }
     }
 
 
@@ -512,13 +512,20 @@ public class DeviceActivity extends AppCompatActivity
 
         WifiDevice wifiDevice = new WifiDevice(origin, idHex);
         deviceListAdapter.add(wifiDevice);
+        refreshDevice();
+        if (cmdSender != null) {
+            cmdSender.addInterested(wifiDevice);
+        }
         return "添加设备成功";
     }
 
     /**
      * 刷新设备状态
      */
-    private void refreshDevice(){
+    private void refreshDevice() {
+        if (deviceListAdapter.getCount() == 0) {
+            return;
+        }
         //修改状态
         deviceListAdapter.modifyAllDeviceStatus(BUSY);
         onlineCount = 0;
@@ -534,11 +541,11 @@ public class DeviceActivity extends AppCompatActivity
     /**
      * 查看设备细节
      */
-    private void lookDetail(int index){
-        Intent intent = new Intent(this,DetailActivity.class);
+    private void lookDetail(int index) {
+        Intent intent = new Intent(this, DetailActivity.class);
         WifiDevice device = deviceListAdapter.getItem(index);
         Bundle bundle = new Bundle();
-        bundle.putParcelable("device",device);
+        bundle.putParcelable("device", device);
         intent.putExtras(bundle);
         startActivity(intent);
     }
@@ -553,7 +560,7 @@ public class DeviceActivity extends AppCompatActivity
                     openFileInput(DEVICE_FILE));
             return obj == null ? new ArrayList<WifiDevice>() : (ArrayList<WifiDevice>) obj;
         } catch (IOException e) {
-            Log.e(TAG, "读取设备异常",e);
+            Log.e(TAG, "读取设备异常", e);
         }
         return new ArrayList<>();
     }
@@ -561,13 +568,13 @@ public class DeviceActivity extends AppCompatActivity
     /**
      * 保存设备列表
      */
-    private void writeWifiDevice(){
+    private void writeWifiDevice() {
         try {
-            boolean suc = AppUtils.writeSerialize(openFileOutput(DEVICE_FILE,Context.MODE_PRIVATE),
+            boolean suc = AppUtils.writeSerialize(openFileOutput(DEVICE_FILE, Context.MODE_PRIVATE),
                     deviceListAdapter.getWifiDevices());
-            Log.i(TAG,"保存设备结果:"+suc);
-        }catch (IOException e){
-            Log.e(TAG,"保存设备数据失败");
+            Log.i(TAG, "保存设备结果:" + suc);
+        } catch (IOException e) {
+            Log.e(TAG, "保存设备数据失败");
         }
     }
 
@@ -789,6 +796,7 @@ public class DeviceActivity extends AppCompatActivity
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
+
             if (convertView == null) {
                 convertView = LayoutInflater.from(DeviceActivity.this).inflate(R.layout.list_item_device, null);
 
@@ -806,11 +814,12 @@ public class DeviceActivity extends AppCompatActivity
             WifiDevice device = deviceListAdapter.getItem(position);
 
             nameTxt.setText(device.getName());
-            deviceSwitch.setEnabled(device.getStatus() == ONLINE);
             switch (device.getStatus()) {
                 case ONLINE:
                     statusImg.setImageResource(R.drawable.led_on);
                     statusTxt.setText("");
+                    deviceSwitch.setEnabled(true);
+                    deviceSwitch.setChecked(true);
                     break;
                 case BUSY:
                     statusImg.setImageResource(R.drawable.led_busy);
@@ -819,6 +828,8 @@ public class DeviceActivity extends AppCompatActivity
                 case UNONLINE:
                     statusTxt.setText("(设备未在线)");
                     statusImg.setImageResource(R.drawable.led_off);
+                    deviceSwitch.setChecked(false);
+                    deviceSwitch.setEnabled(false);
                     break;
                 default:
                     break;

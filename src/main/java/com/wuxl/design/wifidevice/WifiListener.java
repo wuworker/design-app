@@ -19,8 +19,9 @@ public interface WifiListener {
     /**
      * 在线通知
      * @param hexId 设备id
+     * @param level 亮度等级
      */
-    void isOnline(String hexId);
+    void isOnline(String hexId,int level);
 
 
     /**
