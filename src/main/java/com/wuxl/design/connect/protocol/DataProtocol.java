@@ -13,8 +13,6 @@ public class DataProtocol {
 
     public static final int ORIGIN_LENGTH = 6;
 
-    public static final int CMD_LENGTH = 1;
-
     public static final int DATA_LENGTH = 16;
 
 
@@ -47,6 +45,10 @@ public class DataProtocol {
 
     public static final byte OFF = 0x62;
 
-    public static final byte PWM = 0x63;
+    public static final byte TIME_ON = 0x63;
+
+    public static final byte TIME_OFF = 0x64;
+
+    public static final byte TIME_CLR = 0x65;
 
 }

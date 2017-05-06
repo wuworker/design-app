@@ -24,6 +24,12 @@ public interface DataCmdSender {
      */
     void isOnline(WifiDevice device);
 
+    //
+    void clearTime(WifiDevice device);
+
+    void onTime(WifiDevice device,int minute);
+
+    void offTime(WifiDevice device,int minute);
 
     //向服务器发送的
     /**

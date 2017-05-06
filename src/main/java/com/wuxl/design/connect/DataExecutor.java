@@ -62,6 +62,16 @@ public abstract class DataExecutor {
         sendData(cmd,data);
     }
 
+    public void sendData(byte[] target,byte cmd,int... data){
+        dataPackage.setTarget(target);
+        byte[] datas = dataPackage.getData();
+        for(int i=0;i<datas.length;i++){
+            datas[i] = (byte)data[i];
+        }
+        dataPackage.setDataLen(data.length);
+        sendData(cmd);
+    }
+
     /**
      * 无数据发送
      */

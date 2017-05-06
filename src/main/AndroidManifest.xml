@@ -36,6 +36,7 @@
         <activity android:name=".activity.ScanActivity"/>
         <activity android:name=".activity.DetailActivity"/>
         <activity android:name=".activity.SettingActivity"/>
+        <activity android:name=".activity.TimerActivity"/>
         <service android:name=".connect.service.TCPConnectService"/>
 
     </application>

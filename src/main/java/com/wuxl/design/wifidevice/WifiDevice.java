@@ -14,6 +14,8 @@ import static com.wuxl.design.common.utils.DataUtils.toHex;
  */
 public class WifiDevice implements Serializable,Parcelable {
 
+    public static final long serialVersionUID = 1L;
+
     //unOnline为0,这样初始化出来默认断开状态
     public static final int UNONLINE = 0;
 
@@ -27,6 +29,15 @@ public class WifiDevice implements Serializable,Parcelable {
 
     private int lightLevel = 50;
 
+    //定时功能是否开启
+    private boolean timeEnable;
+    //定时时间
+    private String time;
+    //定时占空比
+    private int timePwm;
+    //定时开/关
+    private boolean timeOn;
+
     private transient int status;
 
     public static final Parcelable.Creator<WifiDevice> CREATOR=new Parcelable.Creator<WifiDevice>(){
@@ -35,10 +46,20 @@ public class WifiDevice implements Serializable,Parcelable {
             byte[] id = new byte[DataProtocol.ORIGIN_LENGTH];
             source.readByteArray(id);
             String name = source.readString();
+            int lightLevel = source.readInt();
             int status = source.readInt();
+            String time = source.readString();
+            int timePwm = source.readInt();
+            boolean[] onOroff = new boolean[2];
+            source.readBooleanArray(onOroff);
             WifiDevice device = new WifiDevice(id);
             device.setName(name);
+            device.setLightLevel(lightLevel);
             device.setStatus(status);
+            device.setTime(time);
+            device.setTimePwm(timePwm);
+            device.setTimeEnable(onOroff[0]);
+            device.setTimeOn(onOroff[1]);
             return device;
         }
 
@@ -50,6 +71,7 @@ public class WifiDevice implements Serializable,Parcelable {
 
 
     public WifiDevice() {
+
     }
 
     public WifiDevice(byte[] id) {
@@ -70,7 +92,11 @@ public class WifiDevice implements Serializable,Parcelable {
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeByteArray(id);
         dest.writeString(name);
+        dest.writeInt(lightLevel);
         dest.writeInt(status);
+        dest.writeString(time);
+        dest.writeInt(timePwm);
+        dest.writeBooleanArray(new boolean[]{timeEnable,timeOn});
     }
 
     public byte[] getId() {
@@ -109,6 +135,42 @@ public class WifiDevice implements Serializable,Parcelable {
         this.status = status;
     }
 
+    public String getTime() {
+        return time;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+
+    public int getTimePwm() {
+        return timePwm;
+    }
+
+    public void setTimePwm(int timePwm) {
+        this.timePwm = timePwm;
+    }
+
+    public boolean isTimeOn() {
+        return timeOn;
+    }
+
+    public void setTimeOn(boolean timeOn) {
+        this.timeOn = timeOn;
+    }
+
+    public boolean isTimeEnable() {
+        return timeEnable;
+    }
+
+    public void setTimeEnable(boolean timeEnable) {
+        this.timeEnable = timeEnable;
+    }
+
+    public String getTimeFormat(){
+        String[] time = this.time.split(":");
+        return time[1]+"月"+time[2]+"号 "+time[3]+":"+time[4];
+    }
 
     @Override
     public String toString() {

@@ -40,22 +40,23 @@ import com.cjj.MaterialRefreshListener;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 import com.wuxl.design.R;
+import com.wuxl.design.common.utils.AppUtils;
+import com.wuxl.design.common.utils.DateUtils;
 import com.wuxl.design.connect.protocol.DataCmdSender;
 import com.wuxl.design.connect.protocol.DataProtocol;
 import com.wuxl.design.wifidevice.WifiDevice;
 import com.wuxl.design.wifidevice.WifiDeviceConnectManager;
 import com.wuxl.design.wifidevice.WifiListener;
-import com.wuxl.design.common.utils.AppUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import static com.wuxl.design.common.utils.AppUtils.setStatusBarTransparent;
+import static com.wuxl.design.common.utils.DataUtils.toByte;
 import static com.wuxl.design.wifidevice.WifiDevice.BUSY;
 import static com.wuxl.design.wifidevice.WifiDevice.ONLINE;
 import static com.wuxl.design.wifidevice.WifiDevice.UNONLINE;
-import static com.wuxl.design.common.utils.AppUtils.setStatusBarTransparent;
-import static com.wuxl.design.common.utils.DataUtils.toByte;
 
 /**
  * 设备界面
@@ -176,7 +177,7 @@ public class DeviceActivity extends AppCompatActivity
 
         deviceManager = WifiDeviceConnectManager.getInstance();
         deviceManager.setListener(listener);
-        deviceManager.ready(this);
+       // deviceManager.ready(this);
     }
 
     @Override
@@ -216,6 +217,48 @@ public class DeviceActivity extends AppCompatActivity
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.i(TAG,"REQ:"+requestCode+","+resultCode);
+        //定时界面的结果码
+        if(resultCode == TimerActivity.TIMER_RESULT_OK){
+            WifiDevice device = deviceListAdapter.getItem(requestCode);
+            Bundle bundle = data.getExtras();
+            if(bundle.getBoolean("timeEnable")){
+                int year = bundle.getInt("year");
+                int month = bundle.getInt("month");
+                int day = bundle.getInt("day");
+                int hour = bundle.getInt("hour");
+                int minute = bundle.getInt("minute");
+                Log.i(TAG,year+","+month+","+day+","+hour+","+minute);
+                device.setTimeEnable(true);
+                device.setTime(year+":"+month+":"+day+":"+hour+":"+minute);
+                int sendMinute = DateUtils.toNowAfterMinutes(year,month,day,hour,minute);
+                Log.i(TAG,"离现在"+sendMinute+"分钟");
+                if(bundle.getBoolean("timeOn")){
+                    int pwm = bundle.getInt("timePwm");
+                    device.setTimeOn(true);
+                    device.setTimePwm(pwm);
+                    Log.i(TAG,"pwm:"+pwm);
+                    if(cmdSender!=null){
+                        cmdSender.onTime(device,sendMinute);
+                    }
+                }else {
+                    device.setTimeOn(false);
+                    if(cmdSender!=null){
+                        cmdSender.offTime(device,sendMinute);
+                    }
+                }
+            } else {
+                if(device.isTimeEnable()){
+                    device.setTimeEnable(false);
+                    if(cmdSender!=null){
+                        cmdSender.clearTime(device);
+                    }
+                }
+            }
+            deviceListAdapter.notifyDataSetChanged();
+            return;
+        }
+        //扫描界面
         IntentResult intentResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, data);
         if (intentResult != null) {
             // ScanResult 为获取到的字符串
@@ -279,8 +322,9 @@ public class DeviceActivity extends AppCompatActivity
                                     ContextMenu.ContextMenuInfo menuInfo) {
         //添加菜单项
         menu.add(0, Menu.FIRST, 0, "修改设备名");
-        menu.add(0, Menu.FIRST + 1, 0, "查看详情");
-        menu.add(0, Menu.FIRST + 2, 0, "删除设备");
+        menu.add(0,Menu.FIRST + 1,0,"设置定时");
+        menu.add(0, Menu.FIRST + 2, 0, "查看详情");
+        menu.add(0, Menu.FIRST + 3, 0, "删除设备");
         super.onCreateContextMenu(menu, v, menuInfo);
     }
 
@@ -296,9 +340,12 @@ public class DeviceActivity extends AppCompatActivity
                 modifyDialog.show();
                 break;
             case Menu.FIRST + 1:
-                lookDetail(currentSelected);
+                setDeviceTimer(currentSelected);
                 break;
             case Menu.FIRST + 2:
+                lookDetail(currentSelected);
+                break;
+            case Menu.FIRST + 3:
                 deviceListAdapter.remove(currentSelected);
                 break;
             default:
@@ -512,8 +559,8 @@ public class DeviceActivity extends AppCompatActivity
 
         WifiDevice wifiDevice = new WifiDevice(origin, idHex);
         deviceListAdapter.add(wifiDevice);
-        refreshDevice();
         if (cmdSender != null) {
+            refreshDevice();
             cmdSender.addInterested(wifiDevice);
         }
         return "添加设备成功";
@@ -548,6 +595,18 @@ public class DeviceActivity extends AppCompatActivity
         bundle.putParcelable("device", device);
         intent.putExtras(bundle);
         startActivity(intent);
+    }
+
+    /**
+     * 设置设备定时
+     */
+    private void setDeviceTimer(int index){
+        Intent intent = new Intent(this, TimerActivity.class);
+        WifiDevice device = deviceListAdapter.getItem(index);
+        Bundle bundle = new Bundle();
+        bundle.putParcelable("device", device);
+        intent.putExtras(bundle);
+        startActivityForResult(intent,currentSelected);
     }
 
     /**
@@ -808,6 +867,7 @@ public class DeviceActivity extends AppCompatActivity
                 deviceBar.setOnSeekBarChangeListener(new SeekBarListener(position));
             }
             TextView nameTxt = (TextView) convertView.findViewById(R.id.name_txt);
+            TextView timeTxt = (TextView) convertView.findViewById(R.id.time_txt);
             TextView statusTxt = (TextView) convertView.findViewById(R.id.status_txt);
             ImageView statusImg = (ImageView) convertView.findViewById(R.id.status_img);
             Switch deviceSwitch = (Switch) convertView.findViewById(R.id.device_switch);
@@ -834,7 +894,15 @@ public class DeviceActivity extends AppCompatActivity
                 default:
                     break;
             }
-
+            if(device.isTimeEnable()){
+                if(device.isTimeOn()){
+                    timeTxt.setText("将在"+device.getTimeFormat()+"调整亮度为"+device.getTimePwm()+"%");
+                }else {
+                    timeTxt.setText("将在"+device.getTimeFormat()+"关闭");
+                }
+            }else {
+                timeTxt.setText("未设置定时");
+            }
             return convertView;
         }
 

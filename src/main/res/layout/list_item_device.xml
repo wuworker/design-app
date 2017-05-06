@@ -13,22 +13,31 @@
             android:id="@+id/device_img"
             android:layout_width="50dp"
             android:layout_height="50dp"
-            android:background="@mipmap/ic_launcher"/>
+            android:background="@mipmap/ic_launcher" />
         <TextView
             android:id="@+id/name_txt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
-            android:layout_toEndOf="@id/device_img"
-            android:layout_centerVertical="true"
-            android:text="ahahah"/>
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
+            android:layout_toEndOf="@id/device_img"/>
         <TextView
             android:id="@+id/status_txt"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toEndOf="@id/name_txt"
-            android:layout_centerVertical="true"
+            android:layout_marginTop="5dp"
+            android:layout_marginBottom="5dp"
             android:text="(设备未在线)"/>
+        <TextView
+            android:id="@+id/time_txt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/name_txt"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_toEndOf="@id/device_img"/>
         <Switch
             android:id="@+id/device_switch"
             android:layout_width="wrap_content"

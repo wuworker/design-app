@@ -12,6 +12,9 @@ import static com.wuxl.design.connect.protocol.DataProtocol.IS_APP;
 import static com.wuxl.design.connect.protocol.DataProtocol.OFF;
 import static com.wuxl.design.connect.protocol.DataProtocol.ON;
 import static com.wuxl.design.connect.protocol.DataProtocol.ONLINE;
+import static com.wuxl.design.connect.protocol.DataProtocol.TIME_CLR;
+import static com.wuxl.design.connect.protocol.DataProtocol.TIME_ON;
+import static com.wuxl.design.connect.protocol.DataProtocol.TIME_OFF;
 
 /**
  * Created by wuxingle on 2017/5/2 0002.
@@ -25,7 +28,7 @@ public class WifiDeviceCmdSender implements DataCmdSender {
 
     private WifiDeviceConnectManager connectManager;
 
-    public WifiDeviceCmdSender(WifiDeviceConnectManager connectManager, DataExecutor dataExecutor){
+    public WifiDeviceCmdSender(WifiDeviceConnectManager connectManager, DataExecutor dataExecutor) {
         this.dataExecutor = dataExecutor;
         this.connectManager = connectManager;
     }
@@ -35,16 +38,16 @@ public class WifiDeviceCmdSender implements DataCmdSender {
      * 打开设备
      */
     @Override
-    public void on(WifiDevice device,int pwm) {
-        if(pwm < 0 || pwm >100){
-            Log.i(TAG,"pwm错误");
+    public void on(WifiDevice device, int pwm) {
+        if (pwm < 0 || pwm > 100) {
+            Log.i(TAG, "pwm错误");
             return;
         }
-        if(connectManager.isReady()){
-            Log.i(TAG,"打开设备");
-            dataExecutor.sendData(device.getId(),ON,pwm);
-        }else {
-            Log.w(TAG,"service未启动");
+        if (connectManager.isReady()) {
+            Log.i(TAG, "打开设备");
+            dataExecutor.sendData(device.getId(), ON, pwm);
+        } else {
+            Log.w(TAG, "service未启动");
         }
     }
 
@@ -53,11 +56,11 @@ public class WifiDeviceCmdSender implements DataCmdSender {
      */
     @Override
     public void off(WifiDevice device) {
-        if(connectManager.isReady()){
-            Log.i(TAG,"关闭设备");
-            dataExecutor.sendData(device.getId(),OFF);
-        }else {
-            Log.w(TAG,"service未启动");
+        if (connectManager.isReady()) {
+            Log.i(TAG, "关闭设备");
+            dataExecutor.sendData(device.getId(), OFF);
+        } else {
+            Log.w(TAG, "service未启动");
         }
     }
 
@@ -66,11 +69,48 @@ public class WifiDeviceCmdSender implements DataCmdSender {
      */
     @Override
     public void isOnline(WifiDevice device) {
-        if(connectManager.isReady()){
-            Log.i(TAG,"发送数据,判断设备是否在线,"+ Arrays.toString(device.getId()));
-            dataExecutor.sendData(device.getId(),ONLINE);
-        }else {
-            Log.w(TAG,"service未启动");
+        if (connectManager.isReady()) {
+            Log.i(TAG, "发送数据,判断设备是否在线," + Arrays.toString(device.getId()));
+            dataExecutor.sendData(device.getId(), ONLINE);
+        } else {
+            Log.w(TAG, "service未启动");
+        }
+    }
+
+
+    @Override
+    public void clearTime(WifiDevice device) {
+        if (connectManager.isReady()) {
+            Log.i(TAG, "发送数据,清除定时任务" + Arrays.toString(device.getId()));
+            dataExecutor.sendData(device.getId(), TIME_CLR);
+        } else {
+            Log.w(TAG, "service未启动");
+        }
+    }
+
+    @Override
+    public void onTime(WifiDevice device, int minute) {
+        if(minute <=0){
+            return;
+        }
+        if (connectManager.isReady()) {
+            Log.i(TAG, "发送数据,设置定时开" + Arrays.toString(device.getId()));
+            dataExecutor.sendData(device.getId(), TIME_ON, device.getTimePwm(),(minute >> 8) & 0xff, minute & 0xff);
+        } else {
+            Log.w(TAG, "service未启动");
+        }
+    }
+
+    @Override
+    public void offTime(WifiDevice device, int minute) {
+        if(minute <=0){
+            return;
+        }
+        if (connectManager.isReady()) {
+            Log.i(TAG, "发送数据,设置定时关" + Arrays.toString(device.getId()));
+            dataExecutor.sendData(device.getId(), TIME_OFF,(minute >> 8) & 0xff, minute & 0xff);
+        } else {
+            Log.w(TAG, "service未启动");
         }
     }
 
@@ -79,11 +119,11 @@ public class WifiDeviceCmdSender implements DataCmdSender {
      */
     @Override
     public void addInterested(WifiDevice device) {
-        if(connectManager.isReady()){
-            Log.i(TAG,"添加感兴趣的设备列表");
-            dataExecutor.sendData(device.getId(),ADD_LED);
-        }else {
-            Log.w(TAG,"service未启动");
+        if (connectManager.isReady()) {
+            Log.i(TAG, "添加感兴趣的设备列表");
+            dataExecutor.sendData(device.getId(), ADD_LED);
+        } else {
+            Log.w(TAG, "service未启动");
         }
     }
 
@@ -92,11 +132,11 @@ public class WifiDeviceCmdSender implements DataCmdSender {
      */
     @Override
     public void register() {
-        if(connectManager.isReady()){
-            Log.i(TAG,"向服务器注册");
+        if (connectManager.isReady()) {
+            Log.i(TAG, "向服务器注册");
             dataExecutor.sendData(IS_APP);
-        }else {
-            Log.w(TAG,"service未启动");
+        } else {
+            Log.w(TAG, "service未启动");
         }
     }
 

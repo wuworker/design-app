@@ -47,6 +47,17 @@ public class DataUtils {
         return data;
     }
 
+    public static int[] toIntegerArray(String[] str){
+        if(str == null){
+            return new int[0];
+        }
+        int[] nums = new int[str.length];
+        for(int i=0;i<nums.length;i++){
+            nums[i] = Integer.parseInt(str[i]);
+        }
+        return nums;
+    }
+
     /**
      * 转为byte
      * byte[3] byte[2] byte[1] byte[0]
