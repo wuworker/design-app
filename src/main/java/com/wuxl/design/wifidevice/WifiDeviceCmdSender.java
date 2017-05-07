@@ -7,14 +7,8 @@ import com.wuxl.design.connect.protocol.DataCmdSender;
 
 import java.util.Arrays;
 
-import static com.wuxl.design.connect.protocol.DataProtocol.ADD_LED;
-import static com.wuxl.design.connect.protocol.DataProtocol.IS_APP;
-import static com.wuxl.design.connect.protocol.DataProtocol.OFF;
-import static com.wuxl.design.connect.protocol.DataProtocol.ON;
-import static com.wuxl.design.connect.protocol.DataProtocol.ONLINE;
-import static com.wuxl.design.connect.protocol.DataProtocol.TIME_CLR;
-import static com.wuxl.design.connect.protocol.DataProtocol.TIME_ON;
-import static com.wuxl.design.connect.protocol.DataProtocol.TIME_OFF;
+
+import static com.wuxl.design.connect.protocol.DataProtocol.*;
 
 /**
  * Created by wuxingle on 2017/5/2 0002.
@@ -39,10 +33,6 @@ public class WifiDeviceCmdSender implements DataCmdSender {
      */
     @Override
     public void on(WifiDevice device, int pwm) {
-        if (pwm < 0 || pwm > 100) {
-            Log.i(TAG, "pwm错误");
-            return;
-        }
         if (connectManager.isReady()) {
             Log.i(TAG, "打开设备");
             dataExecutor.sendData(device.getId(), ON, pwm);
@@ -68,16 +58,18 @@ public class WifiDeviceCmdSender implements DataCmdSender {
      * 判断设备是否在线
      */
     @Override
-    public void isOnline(WifiDevice device) {
+    public void getStatus(WifiDevice device) {
         if (connectManager.isReady()) {
             Log.i(TAG, "发送数据,判断设备是否在线," + Arrays.toString(device.getId()));
-            dataExecutor.sendData(device.getId(), ONLINE);
+            dataExecutor.sendData(device.getId(), STATUS);
         } else {
             Log.w(TAG, "service未启动");
         }
     }
 
-
+    /**
+     * 取消定时
+     */
     @Override
     public void clearTime(WifiDevice device) {
         if (connectManager.isReady()) {
@@ -88,27 +80,28 @@ public class WifiDeviceCmdSender implements DataCmdSender {
         }
     }
 
+    /**
+     * 定时开
+     */
     @Override
-    public void onTime(WifiDevice device, int minute) {
-        if(minute <=0){
-            return;
-        }
+    public void onTime(WifiDevice device, int day,int hour,int minute,int second) {
         if (connectManager.isReady()) {
             Log.i(TAG, "发送数据,设置定时开" + Arrays.toString(device.getId()));
-            dataExecutor.sendData(device.getId(), TIME_ON, device.getTimePwm(),(minute >> 8) & 0xff, minute & 0xff);
+            dataExecutor.sendData(device.getId(), TIME_ON,
+                    device.getTimePwm() , day,hour,minute,second);
         } else {
             Log.w(TAG, "service未启动");
         }
     }
 
+    /**
+     * 定时关
+     */
     @Override
-    public void offTime(WifiDevice device, int minute) {
-        if(minute <=0){
-            return;
-        }
+    public void offTime(WifiDevice device,int day,int hour,int minute,int second) {
         if (connectManager.isReady()) {
-            Log.i(TAG, "发送数据,设置定时关" + Arrays.toString(device.getId()));
-            dataExecutor.sendData(device.getId(), TIME_OFF,(minute >> 8) & 0xff, minute & 0xff);
+            Log.i(TAG, "发送数据,设置定时关");
+            dataExecutor.sendData(device.getId(), TIME_OFF, day,hour,minute,second);
         } else {
             Log.w(TAG, "service未启动");
         }

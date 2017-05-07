@@ -17,17 +17,16 @@ public interface WifiListener {
     void connectResult(boolean result);
 
     /**
-     * 在线通知
-     * @param hexId 设备id
-     * @param level 亮度等级
+     * 设备状态改变
      */
-    void isOnline(String hexId,int level);
+    void changeStatus(String hexId,int level,boolean timeOver);
 
 
     /**
-     * 设备状态改变
+     * 服务器发送
+     * 设备上下线通知
      */
-    void changeStatus(String hexId,boolean status);
+    void isOnline(String hexId, boolean status);
 
 
 

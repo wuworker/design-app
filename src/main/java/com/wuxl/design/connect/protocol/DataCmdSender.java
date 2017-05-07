@@ -20,16 +20,24 @@ public interface DataCmdSender {
     void off(WifiDevice device);
 
     /**
-     * 判断设备是否在线
+     * 获取设备信息
      */
-    void isOnline(WifiDevice device);
+    void getStatus(WifiDevice device);
 
-    //
+    /**
+     * 取消定时
+     */
     void clearTime(WifiDevice device);
 
-    void onTime(WifiDevice device,int minute);
+    /**
+     * 定时开
+     */
+    void onTime(WifiDevice device,int day,int hour,int minute,int second);
 
-    void offTime(WifiDevice device,int minute);
+    /**
+     * 定时关
+     */
+    void offTime(WifiDevice device,int day,int hour,int minute,int second);
 
     //向服务器发送的
     /**

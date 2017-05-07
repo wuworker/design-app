@@ -51,6 +51,10 @@ import com.wuxl.design.wifidevice.WifiListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static com.wuxl.design.common.utils.AppUtils.setStatusBarTransparent;
 import static com.wuxl.design.common.utils.DataUtils.toByte;
@@ -71,9 +75,11 @@ public class DeviceActivity extends AppCompatActivity
 
     //handler message
     private static final int REFRESH_OVER = 1;
-    private static final int STATE_ONLINE = 2;
+    private static final int STATE_CHANGE = 2;
     private static final int CONNECT_STATUS = 3;
-    private static final int STATE_CHANGE = 4;
+    private static final int ONLINE_CHANGE = 4;
+
+    private static final int UPDATE_VIEW = 5;
 
     private Toolbar toolbar;
     private DrawerLayout drawerLayout;
@@ -111,6 +117,10 @@ public class DeviceActivity extends AppCompatActivity
     //上一次按返回键的时间
     private long lastPressBackTime;
 
+    //定时任务
+    private ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
+
+
     private Handler handler = new Handler(new Handler.Callback() {
         @Override
         public boolean handleMessage(Message msg) {
@@ -119,8 +129,8 @@ public class DeviceActivity extends AppCompatActivity
                     Log.i(TAG, "handler到达");
                     refreshLayout.finishRefresh();
                     break;
-                case STATE_ONLINE:
-                    Log.i(TAG, "设备在线");
+                case STATE_CHANGE:
+                    Log.i(TAG, "设备状态更改");
                     deviceListAdapter.modifyDeviceStatus(msg.arg1, ONLINE);
                     break;
                 case CONNECT_STATUS:
@@ -135,17 +145,23 @@ public class DeviceActivity extends AppCompatActivity
                     }
                     //断开重连的
                     if (isRefreshing) {
-                        refreshDevice();
+                        refreshAllDevice();
                     }
                     //第一次连接成功的
                     else {
                         refreshLayout.autoRefresh();
                     }
                     break;
-                case STATE_CHANGE:
+                case ONLINE_CHANGE:
                     deviceListAdapter.modifyDeviceStatus(msg.arg1, msg.arg2);
+                    if (msg.arg2 == ONLINE) {
+                        refreshDevice(msg.arg1);
+                    }
                     String tip = msg.arg2 == ONLINE ? "设备已上线" : "设备掉线";
                     Toast.makeText(DeviceActivity.this, tip, Toast.LENGTH_SHORT).show();
+                    break;
+                case UPDATE_VIEW:
+                    deviceListAdapter.notifyDataSetChanged();
                     break;
                 default:
                     break;
@@ -177,7 +193,9 @@ public class DeviceActivity extends AppCompatActivity
 
         deviceManager = WifiDeviceConnectManager.getInstance();
         deviceManager.setListener(listener);
-       // deviceManager.ready(this);
+        deviceManager.ready(this);
+
+        scheduledExecutor.scheduleWithFixedDelay(new ScheduleTask(), 60, 60, TimeUnit.SECONDS);
     }
 
     @Override
@@ -217,40 +235,34 @@ public class DeviceActivity extends AppCompatActivity
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.i(TAG,"REQ:"+requestCode+","+resultCode);
         //定时界面的结果码
-        if(resultCode == TimerActivity.TIMER_RESULT_OK){
+        if (resultCode == TimerActivity.TIMER_RESULT_OK) {
             WifiDevice device = deviceListAdapter.getItem(requestCode);
             Bundle bundle = data.getExtras();
-            if(bundle.getBoolean("timeEnable")){
-                int year = bundle.getInt("year");
-                int month = bundle.getInt("month");
-                int day = bundle.getInt("day");
-                int hour = bundle.getInt("hour");
-                int minute = bundle.getInt("minute");
-                Log.i(TAG,year+","+month+","+day+","+hour+","+minute);
+            if (bundle.getBoolean("timeEnable")) {
+                long time = bundle.getLong("time");
                 device.setTimeEnable(true);
-                device.setTime(year+":"+month+":"+day+":"+hour+":"+minute);
-                int sendMinute = DateUtils.toNowAfterMinutes(year,month,day,hour,minute);
-                Log.i(TAG,"离现在"+sendMinute+"分钟");
-                if(bundle.getBoolean("timeOn")){
+                device.setTime(time);
+                int[] diffTime = DateUtils.getCountdownTime(time);
+                Log.i(TAG, "离现在:" + diffTime[0] + "," + diffTime[1] + "," + diffTime[2] + "," + diffTime[3]);
+                if (bundle.getBoolean("timeOn")) {
                     int pwm = bundle.getInt("timePwm");
                     device.setTimeOn(true);
                     device.setTimePwm(pwm);
-                    Log.i(TAG,"pwm:"+pwm);
-                    if(cmdSender!=null){
-                        cmdSender.onTime(device,sendMinute);
+                    Log.i(TAG, "pwm:" + pwm);
+                    if (cmdSender != null) {
+                        cmdSender.onTime(device, diffTime[0], diffTime[1], diffTime[2], diffTime[3]);
                     }
-                }else {
+                } else {
                     device.setTimeOn(false);
-                    if(cmdSender!=null){
-                        cmdSender.offTime(device,sendMinute);
+                    if (cmdSender != null) {
+                        cmdSender.offTime(device, diffTime[0], diffTime[1], diffTime[2], diffTime[3]);
                     }
                 }
             } else {
-                if(device.isTimeEnable()){
+                if (device.isTimeEnable()) {
                     device.setTimeEnable(false);
-                    if(cmdSender!=null){
+                    if (cmdSender != null) {
                         cmdSender.clearTime(device);
                     }
                 }
@@ -322,7 +334,7 @@ public class DeviceActivity extends AppCompatActivity
                                     ContextMenu.ContextMenuInfo menuInfo) {
         //添加菜单项
         menu.add(0, Menu.FIRST, 0, "修改设备名");
-        menu.add(0,Menu.FIRST + 1,0,"设置定时");
+        menu.add(0, Menu.FIRST + 1, 0, "设置定时");
         menu.add(0, Menu.FIRST + 2, 0, "查看详情");
         menu.add(0, Menu.FIRST + 3, 0, "删除设备");
         super.onCreateContextMenu(menu, v, menuInfo);
@@ -386,35 +398,55 @@ public class DeviceActivity extends AppCompatActivity
             handler.sendMessage(message);
         }
 
-        //设备在线通知,app主动发送
+        //设备状态通知
         @Override
-        public void isOnline(String hexId,int level) {
-            if (!isRefreshing) {
-                return;
-            }
-            for (int i = 0; i < deviceListAdapter.getCount(); i++) {
-                WifiDevice device = deviceListAdapter.getItem(i);
-                if (device.getStatus() != ONLINE &&
-                        hexId.equals(device.getHexId())) {
-                    //修改状态
-                    device.setLightLevel(level);
-                    Message message = handler.obtainMessage();
-                    message.arg1 = i;
-                    message.what = STATE_ONLINE;
-                    handler.sendMessage(message);
-                    onlineCount++;
-                    break;
+        public void changeStatus(String hexId, int level, boolean timeOver) {
+            //下拉刷新，搜索所有设备
+            if (isRefreshing) {
+                for (int i = 0; i < deviceListAdapter.getCount(); i++) {
+                    WifiDevice device = deviceListAdapter.getItem(i);
+                    if (device.getStatus() != ONLINE &&
+                            hexId.equals(device.getHexId())) {
+                        //修改状态
+                        device.setLightLevel(level);
+                        Message message = handler.obtainMessage();
+                        message.arg1 = i;
+                        message.what = STATE_CHANGE;
+                        handler.sendMessage(message);
+                        onlineCount++;
+                        break;
+                    }
+                }
+                if (onlineCount == deviceListAdapter.getCount()) {
+                    Log.i(TAG, "停止刷新,全部找到");
+                    refreshLayout.finishRefresh();
                 }
             }
-            if (onlineCount == deviceListAdapter.getCount()) {
-                Log.i(TAG, "停止刷新,全部找到");
-                refreshLayout.finishRefresh();
+            //被动接收,或搜索单个
+            else {
+                for (int i = 0; i < deviceListAdapter.getCount(); i++) {
+                    WifiDevice device = deviceListAdapter.getItem(i);
+                    if (hexId.equals(device.getHexId())) {
+                        //修改状态
+                        device.setLightLevel(level);
+                        Message message = handler.obtainMessage();
+                        message.arg1 = i;
+                        message.what = STATE_CHANGE;
+                        handler.sendMessage(message);
+                        if (timeOver) {
+                            Log.i(TAG, "定时任务完成");
+                            device.setTimeEnable(false);
+                        }
+                        break;
+                    }
+                }
             }
+
         }
 
         //设备状态改变,服务器主动发送
         @Override
-        public void changeStatus(String hexId, boolean status) {
+        public void isOnline(String hexId, boolean status) {
             Log.i(TAG, "设备状态改变");
             int newStatus = status ? ONLINE : UNONLINE;
             for (int i = 0; i < deviceListAdapter.getCount(); i++) {
@@ -425,7 +457,7 @@ public class DeviceActivity extends AppCompatActivity
                     Message message = handler.obtainMessage();
                     message.arg1 = i;
                     message.arg2 = newStatus;
-                    message.what = STATE_CHANGE;
+                    message.what = ONLINE_CHANGE;
                     handler.sendMessage(message);
                     break;
                 }
@@ -454,7 +486,7 @@ public class DeviceActivity extends AppCompatActivity
             isRefreshing = true;
             //连接可用
             if (deviceManager.isConnectable()) {
-                refreshDevice();
+                refreshAllDevice();
             } else if (!deviceManager.isConnecting()) {
                 deviceManager.connect(ip, port);
                 Toast.makeText(DeviceActivity.this, "尝试重新连接,请稍候", Toast.LENGTH_SHORT).show();
@@ -560,16 +592,25 @@ public class DeviceActivity extends AppCompatActivity
         WifiDevice wifiDevice = new WifiDevice(origin, idHex);
         deviceListAdapter.add(wifiDevice);
         if (cmdSender != null) {
-            refreshDevice();
+            refreshAllDevice();
             cmdSender.addInterested(wifiDevice);
         }
         return "添加设备成功";
     }
 
     /**
-     * 刷新设备状态
+     * 刷新单个设备
      */
-    private void refreshDevice() {
+    private void refreshDevice(int index) {
+        //发送数据
+        WifiDevice device = deviceListAdapter.getItem(index);
+        cmdSender.getStatus(device);
+    }
+
+    /**
+     * 刷新所有设备状态
+     */
+    private void refreshAllDevice() {
         if (deviceListAdapter.getCount() == 0) {
             return;
         }
@@ -579,7 +620,7 @@ public class DeviceActivity extends AppCompatActivity
         //发送数据
         for (int i = 0; i < deviceListAdapter.getCount(); i++) {
             WifiDevice device = deviceListAdapter.getItem(i);
-            cmdSender.isOnline(device);
+            cmdSender.getStatus(device);
         }
         //3秒后停止
         handler.sendEmptyMessageDelayed(REFRESH_OVER, 3000);
@@ -600,13 +641,17 @@ public class DeviceActivity extends AppCompatActivity
     /**
      * 设置设备定时
      */
-    private void setDeviceTimer(int index){
-        Intent intent = new Intent(this, TimerActivity.class);
+    private void setDeviceTimer(int index) {
         WifiDevice device = deviceListAdapter.getItem(index);
+        if (device.getStatus() != ONLINE) {
+            Toast.makeText(this, "设备未在线，无法定时", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent intent = new Intent(this, TimerActivity.class);
         Bundle bundle = new Bundle();
         bundle.putParcelable("device", device);
         intent.putExtras(bundle);
-        startActivityForResult(intent,currentSelected);
+        startActivityForResult(intent, currentSelected);
     }
 
     /**
@@ -742,7 +787,6 @@ public class DeviceActivity extends AppCompatActivity
         drawerLayout.addDrawerListener(drawerToggle);
     }
 
-
     /**
      * 初始化刷新组件
      */
@@ -798,7 +842,7 @@ public class DeviceActivity extends AppCompatActivity
         }
 
         /**
-         * 设置是否在线
+         * 设置状态
          */
         public void modifyDeviceStatus(int index, int status) {
             getItem(index).setStatus(status);
@@ -867,10 +911,11 @@ public class DeviceActivity extends AppCompatActivity
                 deviceBar.setOnSeekBarChangeListener(new SeekBarListener(position));
             }
             TextView nameTxt = (TextView) convertView.findViewById(R.id.name_txt);
-            TextView timeTxt = (TextView) convertView.findViewById(R.id.time_txt);
             TextView statusTxt = (TextView) convertView.findViewById(R.id.status_txt);
+            TextView timeTxt = (TextView) convertView.findViewById(R.id.time_txt);
             ImageView statusImg = (ImageView) convertView.findViewById(R.id.status_img);
             Switch deviceSwitch = (Switch) convertView.findViewById(R.id.device_switch);
+            SeekBar deviceBar = (SeekBar) convertView.findViewById(R.id.device_bar);
             WifiDevice device = deviceListAdapter.getItem(position);
 
             nameTxt.setText(device.getName());
@@ -880,6 +925,7 @@ public class DeviceActivity extends AppCompatActivity
                     statusTxt.setText("");
                     deviceSwitch.setEnabled(true);
                     deviceSwitch.setChecked(true);
+                    deviceBar.setProgress(device.getLightLevel());
                     break;
                 case BUSY:
                     statusImg.setImageResource(R.drawable.led_busy);
@@ -894,20 +940,52 @@ public class DeviceActivity extends AppCompatActivity
                 default:
                     break;
             }
-            if(device.isTimeEnable()){
-                if(device.isTimeOn()){
-                    timeTxt.setText("将在"+device.getTimeFormat()+"调整亮度为"+device.getTimePwm()+"%");
-                }else {
-                    timeTxt.setText("将在"+device.getTimeFormat()+"关闭");
+            if (!device.isTimeEnable()) {
+                timeTxt.setText("");
+                return convertView;
+            }
+            if (device.getTime() <= System.currentTimeMillis()) {
+                device.setTimeEnable(false);
+                Log.i(TAG, "定时任务过期");
+            } else {
+                //day,hour,minute,second
+                int[] time = DateUtils.getCountdownTime(device.getTime());
+                if (time[0] != 0) {
+                    timeTxt.setText("约" + time[0] + "天后执行");
+                } else if (time[1] != 0) {
+                    timeTxt.setText("约" + time[1] + "小时后执行");
+                } else if (time[2] != 0) {
+                    timeTxt.setText("约" + time[2] + "分钟后执行");
+                } else {
+                    timeTxt.setText("1分钟内将执行");
                 }
-            }else {
-                timeTxt.setText("未设置定时");
             }
             return convertView;
         }
-
     }
 
+    /**
+     * 定时刷新界面
+     */
+    private class ScheduleTask implements Runnable {
+        @Override
+        public void run() {
+            List<WifiDevice> deviceList = deviceListAdapter.getWifiDevices();
+            boolean refresh = false;
+            for (WifiDevice device : deviceList) {
+                if (device.isTimeEnable()) {
+                    int[] time = DateUtils.getCountdownTime(device.getTime());
+                    if (time[0] != 0 || time[1] != 0) {
+                        continue;
+                    }
+                    refresh = true;
+                }
+            }
+            if (refresh) {
+                handler.sendEmptyMessage(UPDATE_VIEW);
+            }
+        }
+    }
 
 }
 

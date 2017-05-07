@@ -32,7 +32,7 @@ public class WifiDevice implements Serializable,Parcelable {
     //定时功能是否开启
     private boolean timeEnable;
     //定时时间
-    private String time;
+    private long time;
     //定时占空比
     private int timePwm;
     //定时开/关
@@ -48,7 +48,7 @@ public class WifiDevice implements Serializable,Parcelable {
             String name = source.readString();
             int lightLevel = source.readInt();
             int status = source.readInt();
-            String time = source.readString();
+            long time = source.readLong();
             int timePwm = source.readInt();
             boolean[] onOroff = new boolean[2];
             source.readBooleanArray(onOroff);
@@ -94,7 +94,7 @@ public class WifiDevice implements Serializable,Parcelable {
         dest.writeString(name);
         dest.writeInt(lightLevel);
         dest.writeInt(status);
-        dest.writeString(time);
+        dest.writeLong(time);
         dest.writeInt(timePwm);
         dest.writeBooleanArray(new boolean[]{timeEnable,timeOn});
     }
@@ -135,11 +135,11 @@ public class WifiDevice implements Serializable,Parcelable {
         this.status = status;
     }
 
-    public String getTime() {
+    public long getTime() {
         return time;
     }
 
-    public void setTime(String time) {
+    public void setTime(long time) {
         this.time = time;
     }
 
@@ -167,10 +167,6 @@ public class WifiDevice implements Serializable,Parcelable {
         this.timeEnable = timeEnable;
     }
 
-    public String getTimeFormat(){
-        String[] time = this.time.split(":");
-        return time[1]+"月"+time[2]+"号 "+time[3]+":"+time[4];
-    }
 
     @Override
     public String toString() {

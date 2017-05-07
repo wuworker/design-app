@@ -18,6 +18,7 @@ import java.util.Arrays;
 
 import static com.wuxl.design.connect.protocol.DataProtocol.DOWNING;
 import static com.wuxl.design.connect.protocol.DataProtocol.OK;
+import static com.wuxl.design.connect.protocol.DataProtocol.TIME_OVER;
 import static com.wuxl.design.connect.protocol.DataProtocol.UPING;
 
 /**
@@ -79,7 +80,6 @@ public class WifiDeviceConnectManager {
 
         @Override
         public void arrivedMessage(byte[] bytes) {
-            Log.i(TAG,"收到数据");
             DataPackage dataPackage = dataExecutor.toDataPackage(bytes);
             if(dataPackage == null){
                 Log.i(TAG,"解析失败,忽略这次数据");
@@ -92,15 +92,19 @@ public class WifiDeviceConnectManager {
             switch (dataPackage.getCmd()){
                 case OK:
                     Log.i(TAG,"设备"+dataPackage.getHexOrigin()+"存在");
-                    wifiListener.isOnline(dataPackage.getHexOrigin(),dataPackage.getData()[0]);
+                    wifiListener.changeStatus(dataPackage.getHexOrigin(),dataPackage.getData()[0],false);
                     break;
                 case DOWNING:
                     Log.i(TAG,"设备掉线");
-                    wifiListener.changeStatus(dataPackage.getHexOrigin(),false);
+                    wifiListener.isOnline(dataPackage.getHexOrigin(),false);
                     break;
                 case UPING:
                     Log.i(TAG,"设备上线");
-                    wifiListener.changeStatus(dataPackage.getHexOrigin(),true);
+                    wifiListener.isOnline(dataPackage.getHexOrigin(),true);
+                    break;
+                case TIME_OVER:
+                    Log.i(TAG,"定时任务完成");
+                    wifiListener.changeStatus(dataPackage.getHexOrigin(),dataPackage.getData()[0],true);
                     break;
                 default:
                     Log.i(TAG,"其他命令");
@@ -114,7 +118,6 @@ public class WifiDeviceConnectManager {
 
         @Override
         public void sendComplete(byte[] bytes) {
-            Log.i(TAG,"发送回调");
         }
 
         @Override

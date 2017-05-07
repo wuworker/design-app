@@ -4,6 +4,7 @@ import com.wuxl.design.connect.DataExecutor;
 import com.wuxl.design.connect.protocol.DataPackage;
 
 import static com.wuxl.design.connect.protocol.DataProtocol.DATA_END;
+import static com.wuxl.design.connect.protocol.DataProtocol.OFFEST;
 import static com.wuxl.design.connect.protocol.DataProtocol.ORIGIN_LENGTH;
 import static com.wuxl.design.connect.protocol.DataProtocol.PACKET_MIN_LENGTH;
 import static com.wuxl.design.connect.protocol.DataProtocol.TARGET_LENGTH;
@@ -29,7 +30,11 @@ public class DefaultDataExecutor extends DataExecutor {
         int dataStart = TARGET_LENGTH + ORIGIN_LENGTH + 1;
         //去掉数据尾
         int dataLen = bytes.length - dataStart - 1;
-        System.arraycopy(bytes, dataStart, dataPackage.getData(), 0, dataLen);
+        //去掉数据偏移
+        byte[] packageData = dataPackage.getData();
+        for(int i=0;i<dataLen;i++){
+            packageData[i] = (byte)(bytes[dataStart + i] - OFFEST);
+        }
         dataPackage.setDataLen(dataLen);
         return dataPackage;
     }
@@ -43,9 +48,11 @@ public class DefaultDataExecutor extends DataExecutor {
         System.arraycopy(dataPackage.getTarget(), 0, bytes, 0, TARGET_LENGTH);
         System.arraycopy(dataPackage.getOrigin(), 0, bytes, TARGET_LENGTH, ORIGIN_LENGTH);
         bytes[TARGET_LENGTH + ORIGIN_LENGTH] = dataPackage.getCmd();
-        System.arraycopy(dataPackage.getData(), 0,
-                bytes, TARGET_LENGTH + ORIGIN_LENGTH + 1,
-                dataPackage.getDataLen());
+        //增加数据偏移
+        byte[] packageData = dataPackage.getData();
+        for(int i=0;i<dataPackage.getDataLen();i++){
+            bytes[TARGET_LENGTH + ORIGIN_LENGTH + 1 + i] = (byte)(packageData[i] + OFFEST);
+        }
         //增加数据尾
         bytes[bytes.length - 1] = DATA_END;
         return bytes;

@@ -19,10 +19,8 @@ import android.widget.TimePicker;
 import android.widget.Toast;
 
 import com.wuxl.design.R;
-import com.wuxl.design.common.utils.DataUtils;
 import com.wuxl.design.wifidevice.WifiDevice;
 
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.Locale;
@@ -65,6 +63,8 @@ public class TimerActivity extends AppCompatActivity {
 
         Bundle bundle = getIntent().getExtras();
         WifiDevice device = bundle.getParcelable("device");
+
+        Log.i(TAG,"设备为:"+device);
 
         initView();
         initToolBar();
@@ -111,6 +111,7 @@ public class TimerActivity extends AppCompatActivity {
                 public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
                     calendar.set(Calendar.HOUR_OF_DAY,hourOfDay);
                     calendar.set(Calendar.MINUTE,minute);
+                    calendar.set(Calendar.SECOND,0);
                     timeText.setText(getTime(hourOfDay, minute));
                 }
             }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), true);
@@ -142,11 +143,7 @@ public class TimerActivity extends AppCompatActivity {
             bundle.putBoolean("timeEnable",false);
         }else {
             bundle.putBoolean("timeEnable",true);
-            bundle.putInt("year",calendar.get(Calendar.YEAR));
-            bundle.putInt("month",calendar.get(Calendar.MONTH)+1);
-            bundle.putInt("day",calendar.get(Calendar.DAY_OF_MONTH));
-            bundle.putInt("hour",calendar.get(Calendar.HOUR_OF_DAY));
-            bundle.putInt("minute",calendar.get(Calendar.MINUTE));
+            bundle.putLong("time",calendar.getTimeInMillis());
             if(ledSwitch.isChecked()){
                 bundle.putBoolean("timeOn",true);
                 bundle.putInt("timePwm",pwm);
@@ -168,10 +165,8 @@ public class TimerActivity extends AppCompatActivity {
             timeSwitch.setChecked(true);
             enableView(true);
             //yyyy:MM:dd:HH:mm
-            String[] timeStr = device.getTime().split(":");
-            int[] times = DataUtils.toIntegerArray(timeStr);
-            Log.i(TAG, Arrays.toString(times));
-            calendar.set(times[0],times[1] - 1,times[2],times[3],times[4]);
+            long time = device.getTime();
+            calendar.setTimeInMillis(time);
             //如果是定时开
             if(device.isTimeOn()){
                 ledSwitch.setChecked(true);
@@ -267,6 +262,9 @@ public class TimerActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 enableView(isChecked);
+                if(!isChecked){
+                    Toast.makeText(TimerActivity.this,"定时已取消",Toast.LENGTH_SHORT).show();
+                }
             }
         });
 

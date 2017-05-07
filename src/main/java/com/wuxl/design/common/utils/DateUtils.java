@@ -1,23 +1,24 @@
 package com.wuxl.design.common.utils;
 
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-
 /**
  * Created by wuxingle on 2017/5/6 0006.
  * 日期工具类
  */
 public class DateUtils {
 
-
     /**
-     * 返回目标日期到现在的所有分钟数
+     * 返回距离现在的时间
+     * day,hour,minute,second
      */
-    public static int toNowAfterMinutes(int year, int month, int day, int hour, int minute) {
-        Calendar calendar = new GregorianCalendar();
-        calendar.set(year, month - 1, day, hour, minute);
-        long differ = calendar.getTimeInMillis() - System.currentTimeMillis();
-        return (int) ((differ / 1000 + 59) / 60);
+    public static int[] getCountdownTime(long time){
+        int[] diffTime = new int[4];
+        int diffSecond = (int)((time - System.currentTimeMillis())/1000);
+        diffTime[3] = diffSecond % 60;
+        diffTime[2] = diffSecond / 60 % 60;
+        diffTime[1] = diffSecond / 3600 % 24;
+        diffTime[0] = diffSecond / (3600 * 24);
+
+        return diffTime;
     }
 
 }

@@ -21,19 +21,20 @@ public class DataProtocol {
 
     public static final int PACKET_MAX_LENGTH = 30;
 
+    //数据偏移量
+    public static final int OFFEST = 50;
+
     //结束位
     public static final byte DATA_END = 0x0a;
 
     //命令
     public static final byte OK = 0x11;
 
-    public static final byte ONLINE = 0x12;
+    public static final byte STATUS = 0x12;
 
     public static final byte IS_APP = 0x21;
 
     public static final byte IS_MCU = 0x22;
-
-    public static final byte FAIL = 0x33;
 
     public static final byte ADD_LED = 0x41;
 
@@ -50,5 +51,7 @@ public class DataProtocol {
     public static final byte TIME_OFF = 0x64;
 
     public static final byte TIME_CLR = 0x65;
+
+    public static final byte TIME_OVER = 0x66;
 
 }

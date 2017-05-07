@@ -85,8 +85,6 @@ public class TCPConnectorImpl implements TCPConnector{
             Log.w(TAG,"连接不可用，不能发送");
             return;
         }
-        Log.i(TAG,"发送就绪"+Arrays.toString(data));
-
         messageQueue.offer(ByteBuffer.wrap(data));
 
         if(listener!=null){
