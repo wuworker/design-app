@@ -48,6 +48,7 @@ import com.wuxl.design.wifidevice.WifiDevice;
 import com.wuxl.design.wifidevice.WifiDeviceConnectManager;
 import com.wuxl.design.wifidevice.WifiListener;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -177,8 +178,12 @@ public class DeviceActivity extends AppCompatActivity
         setStatusBarTransparent(this);
         setContentView(R.layout.activity_device);
 
-        ip = getResources().getString(R.string.server_ip);
-        port = Integer.parseInt(getResources().getString(R.string.server_port));
+//        ip = getResources().getString(R.string.server_ip);
+//        port = Integer.parseInt(getResources().getString(R.string.server_port));
+
+        String[] address = getIntent().getStringExtra("address").split(":");
+        ip = address[0];
+        port = Integer.parseInt(address[1]);
 
         ArrayList<WifiDevice> devices = readWifiDevice();
         Log.i(TAG, "读取的设备为：" + devices);
@@ -196,11 +201,14 @@ public class DeviceActivity extends AppCompatActivity
         deviceManager.ready(this);
 
         scheduledExecutor.scheduleWithFixedDelay(new ScheduleTask(), 60, 60, TimeUnit.SECONDS);
+
+        Toast.makeText(this,ip+","+port,Toast.LENGTH_SHORT).show();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        deviceManager.setListener(listener);
         if (deviceListAdapter.getCount() > 0) {
             hiddenAddLayout.setVisibility(View.INVISIBLE);
         }
@@ -335,8 +343,8 @@ public class DeviceActivity extends AppCompatActivity
         //添加菜单项
         menu.add(0, Menu.FIRST, 0, "修改设备名");
         menu.add(0, Menu.FIRST + 1, 0, "设置定时");
-        menu.add(0, Menu.FIRST + 2, 0, "查看详情");
-        menu.add(0, Menu.FIRST + 3, 0, "删除设备");
+       // menu.add(0, Menu.FIRST + 2, 0, "查看详情");
+        menu.add(0, Menu.FIRST + 2, 0, "删除设备");
         super.onCreateContextMenu(menu, v, menuInfo);
     }
 
@@ -354,10 +362,10 @@ public class DeviceActivity extends AppCompatActivity
             case Menu.FIRST + 1:
                 setDeviceTimer(currentSelected);
                 break;
+//            case Menu.FIRST + 2:
+//                lookDetail(currentSelected);
+//                break;
             case Menu.FIRST + 2:
-                lookDetail(currentSelected);
-                break;
-            case Menu.FIRST + 3:
                 deviceListAdapter.remove(currentSelected);
                 break;
             default:
@@ -660,9 +668,14 @@ public class DeviceActivity extends AppCompatActivity
     @SuppressWarnings("unchecked")
     private ArrayList<WifiDevice> readWifiDevice() {
         try {
-            Object obj = AppUtils.readSerialize(getFilesDir().getPath() + "/" + DEVICE_FILE,
-                    openFileInput(DEVICE_FILE));
-            return obj == null ? new ArrayList<WifiDevice>() : (ArrayList<WifiDevice>) obj;
+            String path = getFilesDir().getPath() + "/" + DEVICE_FILE;
+            File deviceFile = new File(path);
+            if(deviceFile.exists()){
+                Object obj = AppUtils.readSerialize(path, openFileInput(DEVICE_FILE));
+                return obj == null ? new ArrayList<WifiDevice>() : (ArrayList<WifiDevice>) obj;
+            }else {
+                Log.i(TAG,"设备文件不存在");
+            }
         } catch (IOException e) {
             Log.e(TAG, "读取设备异常", e);
         }

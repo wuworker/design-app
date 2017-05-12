@@ -7,12 +7,14 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import com.wuxl.design.common.utils.AppUtils;
+import com.wuxl.design.common.utils.DataUtils;
 import com.wuxl.design.connect.ConnectorListener;
 import com.wuxl.design.connect.DataExecutor;
 import com.wuxl.design.connect.TCPConnector;
 import com.wuxl.design.connect.impl.TCPConnectorImpl;
 
-import java.util.Arrays;
+import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -43,9 +45,17 @@ public class TCPConnectService extends Service{
     @Override
     public void onCreate() {
         super.onCreate();
+        String mac=null;
         //设备mac
-        byte[] origin = new byte[6];
-        Arrays.fill(origin,(byte)0x23);
+        try {
+            mac = AppUtils.getMacAdress(this);
+        }catch (SocketException e){
+            Log.e(TAG,"get mac error");
+        }
+
+        byte[] origin = DataUtils.toByte(mac);
+
+        Log.i(TAG,"获取的MAC为:"+DataUtils.toHex(origin));
 
         connector = new TCPConnectorImpl();
         binder = new LocalBinder();

@@ -128,7 +128,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="日期建议选择5分钟后和一天以内"
+            android:text="日期建议选择1分钟后和30天以内"
             android:layout_margin="20dp"
             android:layout_gravity="center_horizontal"/>
     </LinearLayout>

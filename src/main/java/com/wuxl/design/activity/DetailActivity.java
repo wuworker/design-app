@@ -1,6 +1,8 @@
 package com.wuxl.design.activity;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -10,6 +12,7 @@ import android.widget.TextView;
 import com.wuxl.design.R;
 import com.wuxl.design.wifidevice.WifiDevice;
 import com.wuxl.design.wifidevice.WifiDeviceConnectManager;
+import com.wuxl.design.wifidevice.WifiListener;
 
 import static com.wuxl.design.common.utils.AppUtils.setStatusBarTransparent;
 
@@ -25,11 +28,44 @@ public class DetailActivity extends AppCompatActivity{
     private TextView idTxt;
     private TextView nameTxt;
     private TextView statusTxt;
+    private TextView lightTxt;
 
     private WifiDeviceConnectManager manager;
 
     private WifiDevice device;
 
+    private Handler handler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(Message msg) {
+
+
+
+
+
+            return true;
+        }
+    });
+
+    private WifiListener listener = new WifiListener() {
+        @Override
+        public void canConnect() {
+
+        }
+
+        @Override
+        public void connectResult(boolean result) {
+
+        }
+
+        @Override
+        public void changeStatus(String hexId, int level, boolean timeOver) {
+
+        }
+
+        @Override
+        public void isOnline(String hexId, boolean status) {
+        }
+    };
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -44,6 +80,7 @@ public class DetailActivity extends AppCompatActivity{
         device = bundle.getParcelable("device");
 
         manager = WifiDeviceConnectManager.getInstance();
+        manager.setListener(listener);
 
         initDevice();
     }
@@ -55,6 +92,7 @@ public class DetailActivity extends AppCompatActivity{
         idTxt.setText(device.getHexId());
         nameTxt.setText(device.getName());
         statusTxt.setText(device.getStatus() == WifiDevice.ONLINE ? "良好":"断开");
+        lightTxt.setText(String.valueOf(device.getLightLevel()));
     }
 
     /**
@@ -65,6 +103,7 @@ public class DetailActivity extends AppCompatActivity{
         idTxt = (TextView)findViewById(R.id.id_text);
         nameTxt = (TextView)findViewById(R.id.name_text);
         statusTxt = (TextView)findViewById(R.id.status_text);
+        lightTxt = (TextView)findViewById(R.id.light_text);
     }
 
     /**

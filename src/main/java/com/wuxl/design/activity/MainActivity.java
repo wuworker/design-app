@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 
 import com.wuxl.design.R;
 
@@ -26,7 +27,9 @@ public class MainActivity extends AppCompatActivity {
         setStatusBarColor(this,Color.rgb(0x87,0xce,0xeb));
         setContentView(R.layout.activity_main);
 
-        Timer timer = new Timer();
+        Log.i(TAG,"app start");
+
+        Timer timer = new Timer(true);
         timer.schedule(new TimerTask() {
             @Override
             public void run() {

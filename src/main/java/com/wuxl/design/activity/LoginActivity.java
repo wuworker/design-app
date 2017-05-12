@@ -40,6 +40,15 @@ public class LoginActivity extends AppCompatActivity{
 
     public void login(View v){
         Intent intent = new Intent(this, DeviceActivity.class);
+        intent.putExtra("address","192.168.23.1:9999");
+        startActivity(intent);
+        Log.i(TAG,"进入设备页面");
+        finish();
+    }
+
+    public void sendMsg(View v){
+        Intent intent = new Intent(this, DeviceActivity.class);
+        intent.putExtra("address","120.24.96.239:9999");
         startActivity(intent);
         Log.i(TAG,"进入设备页面");
         finish();
