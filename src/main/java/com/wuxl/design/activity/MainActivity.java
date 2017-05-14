@@ -1,6 +1,7 @@
 package com.wuxl.design.activity;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -21,22 +22,34 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
+    private String userId;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setStatusBarColor(this,Color.rgb(0x87,0xce,0xeb));
         setContentView(R.layout.activity_main);
 
-        Log.i(TAG,"app start");
+        SharedPreferences sharedPreferences = getSharedPreferences("user",MODE_PRIVATE);
+        userId = sharedPreferences.getString("user_num","000000");
+
+        Log.i(TAG,"user id is "+userId);
 
         Timer timer = new Timer(true);
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                startActivity(new Intent(MainActivity.this,LoginActivity.class));
+                if(userId.equals("000000")){
+                    startActivity(new Intent(MainActivity.this,LoginActivity.class));
+                }else {
+                    Intent intent = new Intent(MainActivity.this,DeviceActivity.class);
+                    intent.putExtra("user",userId);
+                    startActivity(intent);
+                }
                 finish();
             }
         }, 2000);
+
     }
 
 }

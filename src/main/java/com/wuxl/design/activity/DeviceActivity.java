@@ -99,6 +99,8 @@ public class DeviceActivity extends AppCompatActivity
     private DeviceListAdapter deviceListAdapter;
     private int currentSelected;
 
+    private String userId;
+
     //server ip
     private String ip;
     //server port
@@ -178,12 +180,10 @@ public class DeviceActivity extends AppCompatActivity
         setStatusBarTransparent(this);
         setContentView(R.layout.activity_device);
 
-//        ip = getResources().getString(R.string.server_ip);
-//        port = Integer.parseInt(getResources().getString(R.string.server_port));
+        ip = getResources().getString(R.string.server_ip);
+        port = Integer.parseInt(getResources().getString(R.string.server_port));
 
-        String[] address = getIntent().getStringExtra("address").split(":");
-        ip = address[0];
-        port = Integer.parseInt(address[1]);
+        userId = getIntent().getStringExtra("user");
 
         ArrayList<WifiDevice> devices = readWifiDevice();
         Log.i(TAG, "读取的设备为：" + devices);
@@ -201,8 +201,6 @@ public class DeviceActivity extends AppCompatActivity
         deviceManager.ready(this);
 
         scheduledExecutor.scheduleWithFixedDelay(new ScheduleTask(), 60, 60, TimeUnit.SECONDS);
-
-        Toast.makeText(this,ip+","+port,Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -422,6 +420,7 @@ public class DeviceActivity extends AppCompatActivity
                         message.what = STATE_CHANGE;
                         handler.sendMessage(message);
                         onlineCount++;
+                        Log.i(TAG,"修改了第"+i+"个设备");
                         break;
                     }
                 }
@@ -761,7 +760,7 @@ public class DeviceActivity extends AppCompatActivity
      */
     private void initToolBar() {
         toolbar.setTitle("智能灯");//设置Toolbar标题
-        toolbar.setSubtitle("未登录");
+        toolbar.setSubtitle(userId);
         toolbar.setSubtitleTextColor(Color.WHITE);
 
         toolbar.inflateMenu(R.menu.device_menu);

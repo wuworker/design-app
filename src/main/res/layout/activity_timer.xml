@@ -64,7 +64,8 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:onClick="openDateSelector"/>
+                android:onClick="openDateSelector"
+                android:text="日期设置"/>
         </RelativeLayout>
         <RelativeLayout
             android:layout_width="match_parent"
@@ -87,7 +88,8 @@
                 android:layout_height="wrap_content"
                 android:layout_alignParentEnd="true"
                 android:layout_centerVertical="true"
-                android:onClick="openTimeSelector"/>
+                android:onClick="openTimeSelector"
+                android:text="时间设置"/>
         </RelativeLayout>
         <RelativeLayout
             android:layout_width="match_parent"
